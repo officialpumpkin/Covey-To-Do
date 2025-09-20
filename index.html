@@ -203,7 +203,8 @@ textarea:focus-visible {
     <button id="themeToggle" class="btn pill ghost toggle" aria-label="Toggle theme">🌓</button>
     <h1 style="margin:0 auto">Covey To‑Do</h1>
     <div class="row" style="justify-content:flex-end; gap:12px">
-      <span id="syncStatus" class="btn pill ghost" style="min-height:36px;font-weight:700">Sync: Off</span>
+      <span id="authStatus" class="pill" style="min-height:36px;font-weight:600;padding:8px 14px;font-size:13px">Signed out</span>
+      <button id="signInBtn" class="btn pill primary" aria-haspopup="dialog" aria-controls="signInModal" style="font-weight:700">Sign in</button>
       <button id="settingsBtn" class="btn pill ghost" aria-haspopup="dialog" aria-controls="settingsModal">⚙︎</button>
     </div>
   </header>
@@ -308,6 +309,44 @@ textarea:focus-visible {
   </div>
 </div>
 
+<!-- Sign In Modal -->
+<div id="signInModal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Sign In" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:16px">
+  <div class="sign-in-sheet" style="background:#1e293b;border:1px solid #334155;border-radius:12px;max-width:400px;width:100%;padding:24px;box-shadow:0 20px 40px rgba(0,0,0,.4);text-align:left;color:#f1f5f9">
+    <div class="row" style="justify-content:space-between; margin-bottom:20px; display:flex; align-items:center">
+      <h2 style="margin:0;font-size:18px;font-weight:600;color:#f1f5f9">Sign in</h2>
+      <button id="closeSignIn" class="btn pill ghost" aria-label="Close sign in" style="background:transparent;border:1px solid #475569;color:#94a3b8">✕</button>
+    </div>
+    
+    <form id="signInForm" style="display:flex;flex-direction:column;gap:16px">
+      <div>
+        <input id="emailInput" type="email" placeholder="Email" aria-label="Email address" required style="width:100%;padding:12px 16px;border:1px solid #475569;border-radius:8px;background:#334155;color:#f1f5f9;font-size:14px" />
+      </div>
+      <div>
+        <input id="passwordInput" type="password" placeholder="Password" aria-label="Password" required style="width:100%;padding:12px 16px;border:1px solid #475569;border-radius:8px;background:#334155;color:#f1f5f9;font-size:14px" />
+      </div>
+      
+      <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap">
+        <button type="submit" class="btn pill primary" style="flex:1;min-width:100px">Sign in</button>
+        <button type="button" id="createAccountBtn" class="btn pill ghost" style="flex:1;min-width:100px;background:#374151;border:1px solid #4b5563;color:#f3f4f6">Create account</button>
+      </div>
+      
+      <button type="button" id="googleSignInBtn" class="btn pill ghost" style="width:100%;background:#374151;border:1px solid #4b5563;color:#f3f4f6;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px">
+        <svg width="18" height="18" viewBox="0 0 24 24" style="fill:currentColor">
+          <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+          <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+          <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+          <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+        </svg>
+        Continue with Google
+      </button>
+    </form>
+    
+    <div id="authStatusModal" style="margin-top:16px;text-align:center;font-size:12px;color:#94a3b8">
+      Idle
+    </div>
+  </div>
+</div>
+
 <!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js" defer></script>
@@ -400,6 +439,9 @@ const el = {
   categoriseBox: byId('categoriseBox'), suggestions: byId('suggestions'),
   showCompleted: byId('showCompleted'), clearBtn: byId('clearBtn'), currentList: byId('currentList'),
   settingsBtn: byId('settingsBtn'), settingsModal: byId('settingsModal'), closeSettings: byId('closeSettings'),
+  signInBtn: byId('signInBtn'), signInModal: byId('signInModal'), closeSignIn: byId('closeSignIn'),
+  signInForm: byId('signInForm'), emailInput: byId('emailInput'), passwordInput: byId('passwordInput'),
+  createAccountBtn: byId('createAccountBtn'), googleSignInBtn: byId('googleSignInBtn'), authStatus: byId('authStatus'), authStatusModal: byId('authStatusModal'),
   firebaseConfig: byId('firebaseConfig'), roomCode: byId('roomCode'), displayName: byId('displayName'),
   enableSync: byId('enableSync'), saveSettings: byId('saveSettings'),
   syncStatus: byId('syncStatus'), connectStatus: byId('connectStatus'), envStatus: byId('envStatus'),
@@ -431,9 +473,17 @@ document.addEventListener('keydown', (e) => {
     closeSettings();
   }
   
-  // Focus management for modal
+  // Focus management for modals
   if (el.settingsModal.style.display === 'flex' && e.key === 'Tab') {
     trapFocus(e, el.settingsModal);
+  }
+  if (el.signInModal.style.display === 'flex' && e.key === 'Tab') {
+    trapFocus(e, el.signInModal);
+  }
+  
+  // ESC to close sign-in modal
+  if (e.key === 'Escape' && el.signInModal.style.display === 'flex') {
+    closeSignIn();
   }
 });
 
@@ -997,6 +1047,128 @@ function createQuadrantListItem(t, key) {
 const modal = document.getElementById('settingsModal');
 byId('settingsBtn').onclick = ()=> openSettings();
 byId('closeSettings').onclick = ()=> closeSettings();
+
+/* ========= Authentication modal ========= */
+let currentUser = null;
+
+byId('signInBtn').onclick = ()=> openSignIn();
+byId('closeSignIn').onclick = ()=> closeSignIn();
+
+function openSignIn() {
+  el.signInModal.style.display = 'flex';
+  el.signInModal.setAttribute('aria-hidden', 'false');
+  // Focus first input
+  setTimeout(() => {
+    el.emailInput.focus();
+  }, 100);
+}
+
+function closeSignIn() {
+  el.signInModal.style.display = 'none';
+  el.signInModal.setAttribute('aria-hidden', 'true');
+  // Return focus to sign in button
+  el.signInBtn.focus();
+}
+
+function updateAuthUI(user) {
+  currentUser = user;
+  if (user) {
+    el.authStatus.textContent = `Signed in as ${user.email || user.displayName || 'User'}`;
+    el.signInBtn.textContent = 'Account';
+    el.signInBtn.onclick = ()=> showAccountMenu();
+  } else {
+    el.authStatus.textContent = 'Signed out';
+    el.signInBtn.textContent = 'Sign in';
+    el.signInBtn.onclick = ()=> openSignIn();
+  }
+}
+
+function showAccountMenu() {
+  // For now, just show a simple sign out option
+  if (confirm('Sign out of your account?')) {
+    signOut();
+  }
+}
+
+// Authentication functions (placeholder - will be replaced with Firebase)
+function signInWithEmail(email, password) {
+  el.authStatusModal.textContent = 'Signing in...';
+  // Placeholder - will integrate with Firebase
+  setTimeout(() => {
+    const mockUser = { email: email, displayName: email.split('@')[0] };
+    updateAuthUI(mockUser);
+    closeSignIn();
+    showSuccess('Signed in successfully!');
+    el.authStatusModal.textContent = 'Idle';
+  }, 1000);
+}
+
+function createAccount(email, password) {
+  el.authStatusModal.textContent = 'Creating account...';
+  // Placeholder - will integrate with Firebase
+  setTimeout(() => {
+    const mockUser = { email: email, displayName: email.split('@')[0] };
+    updateAuthUI(mockUser);
+    closeSignIn();
+    showSuccess('Account created and signed in!');
+    el.authStatusModal.textContent = 'Idle';
+  }, 1000);
+}
+
+function signInWithGoogle() {
+  el.authStatusModal.textContent = 'Connecting to Google...';
+  // Placeholder - will integrate with Firebase
+  setTimeout(() => {
+    const mockUser = { email: 'user@gmail.com', displayName: 'Google User' };
+    updateAuthUI(mockUser);
+    closeSignIn();
+    showSuccess('Signed in with Google!');
+    el.authStatusModal.textContent = 'Idle';
+  }, 1000);
+}
+
+function signOut() {
+  updateAuthUI(null);
+  showInfo('Signed out successfully');
+}
+
+// Form event handlers
+el.signInForm.onsubmit = (e) => {
+  e.preventDefault();
+  const email = el.emailInput.value.trim();
+  const password = el.passwordInput.value;
+  
+  if (!email || !password) {
+    showError('Please enter both email and password');
+    return;
+  }
+  
+  signInWithEmail(email, password);
+};
+
+el.createAccountBtn.onclick = () => {
+  const email = el.emailInput.value.trim();
+  const password = el.passwordInput.value;
+  
+  if (!email || !password) {
+    showError('Please enter both email and password to create an account');
+    return;
+  }
+  
+  if (password.length < 6) {
+    showError('Password must be at least 6 characters long');
+    return;
+  }
+  
+  createAccount(email, password);
+};
+
+el.googleSignInBtn.onclick = () => {
+  signInWithGoogle();
+};
+
+// Initialize auth state
+updateAuthUI(null);
 function openSettings(){ 
   modal.style.display='flex'; 
   modal.setAttribute('aria-hidden', 'false'); 
