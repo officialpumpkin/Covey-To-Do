@@ -997,8 +997,24 @@ function createQuadrantListItem(t, key) {
 const modal = document.getElementById('settingsModal');
 byId('settingsBtn').onclick = ()=> openSettings();
 byId('closeSettings').onclick = ()=> closeSettings();
-function openSettings(){ modal.style.display='flex'; modal.setAttribute('aria-hidden', 'false'); loadSettingsIntoUI(); buildSwatches(); // Focus first focusable element setTimeout(() => { const firstFocusable = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'); if (firstFocusable) firstFocusable.focus(); }, 100); }
-function closeSettings(){ modal.style.display='none'; modal.setAttribute('aria-hidden', 'true'); // Return focus to settings button el.settingsBtn.focus(); }
+function openSettings(){ 
+  modal.style.display='flex'; 
+  modal.setAttribute('aria-hidden', 'false'); 
+  loadSettingsIntoUI(); 
+  buildSwatches(); 
+  // Focus first focusable element 
+  setTimeout(() => { 
+    const firstFocusable = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'); 
+    if (firstFocusable) firstFocusable.focus(); 
+  }, 100); 
+}
+
+function closeSettings(){ 
+  modal.style.display='none'; 
+  modal.setAttribute('aria-hidden', 'true'); 
+  // Return focus to settings button 
+  el.settingsBtn.focus(); 
+}
 
 /* ========= Error Handling & Notifications ========= */
 let notificationTimeout = null;
