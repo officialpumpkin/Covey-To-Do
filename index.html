@@ -296,7 +296,7 @@ textarea:focus-visible {
     </div>
     <div style="margin-top:10px">
       <label class="muted" style="font-size:12px">Firebase web config (JSON). Preloaded; edit only if you need to override.</label>
-      <textarea id="firebaseConfig" rows="6" placeholder='{"apiKey":"","authDomain":"","projectId":"","appId":""}' style="width:100%"></textarea>
+      <textarea id="firebaseConfig" rows="6" style="width:100%">{"apiKey":"AIzaSyA_30R8nbkxbfZFMlFk3ZrAVd64GnT5Bdc","authDomain":"covey-to-do-minimal.firebaseapp.com","projectId":"covey-to-do-minimal","storageBucket":"covey-to-do-minimal.firebasestorage.app","messagingSenderId":"347259300013","appId":"1:347259300013:web:5118af8df57c0f064f3e24","measurementId":"G-XTK3S2LK46"}</textarea>
     </div>
     <div class="row" style="gap:12px; margin-top:10px; display:flex">
       <div style="flex:1">
@@ -1091,46 +1091,132 @@ function showAccountMenu() {
   }
 }
 
-// Authentication functions (placeholder - will be replaced with Firebase)
+// Firebase Authentication Functions
+let firebaseApp = null;
+let auth = null;
+
+// Initialize Firebase
+function initializeFirebase() {
+  try {
+    const firebaseConfig = {
+      "apiKey": "AIzaSyA_30R8nbkxbfZFMlFk3ZrAVd64GnT5Bdc",
+      "authDomain": "covey-to-do-minimal.firebaseapp.com", 
+      "projectId": "covey-to-do-minimal",
+      "storageBucket": "covey-to-do-minimal.firebasestorage.app",
+      "messagingSenderId": "347259300013",
+      "appId": "1:347259300013:web:5118af8df57c0f064f3e24",
+      "measurementId": "G-XTK3S2LK46"
+    };
+    
+    if (typeof firebase !== 'undefined') {
+      firebaseApp = firebase.initializeApp(firebaseConfig);
+      auth = firebase.auth();
+      
+      // Set up auth state listener
+      auth.onAuthStateChanged(user => {
+        updateAuthUI(user);
+        if (user) {
+          el.envStatus.textContent = 'SDK: connected';
+          el.envStatus.classList.remove('ghost');
+          el.envStatus.classList.add('primary');
+        } else {
+          el.envStatus.textContent = 'SDK: ready';
+          el.envStatus.classList.remove('primary');
+          el.envStatus.classList.add('ghost');
+        }
+      });
+      
+      el.envStatus.textContent = 'SDK: ready';
+      el.envStatus.classList.remove('ghost');
+      el.envStatus.classList.add('primary');
+    } else {
+      throw new Error('Firebase SDK not loaded');
+    }
+  } catch (error) {
+    console.error('Firebase initialization error:', error);
+    el.envStatus.textContent = 'SDK: error';
+    showError('Firebase initialization failed');
+  }
+}
+
 function signInWithEmail(email, password) {
+  if (!auth) {
+    showError('Firebase not initialized');
+    return;
+  }
+  
   el.authStatusModal.textContent = 'Signing in...';
-  // Placeholder - will integrate with Firebase
-  setTimeout(() => {
-    const mockUser = { email: email, displayName: email.split('@')[0] };
-    updateAuthUI(mockUser);
-    closeSignIn();
-    showSuccess('Signed in successfully!');
-    el.authStatusModal.textContent = 'Idle';
-  }, 1000);
+  
+  auth.signInWithEmailAndPassword(email, password)
+    .then(userCredential => {
+      closeSignIn();
+      showSuccess('Signed in successfully!');
+      el.authStatusModal.textContent = 'Idle';
+    })
+    .catch(error => {
+      console.error('Sign-in error:', error);
+      showError(`Sign-in failed: ${error.message}`);
+      el.authStatusModal.textContent = 'Idle';
+    });
 }
 
 function createAccount(email, password) {
+  if (!auth) {
+    showError('Firebase not initialized');
+    return;
+  }
+  
   el.authStatusModal.textContent = 'Creating account...';
-  // Placeholder - will integrate with Firebase
-  setTimeout(() => {
-    const mockUser = { email: email, displayName: email.split('@')[0] };
-    updateAuthUI(mockUser);
-    closeSignIn();
-    showSuccess('Account created and signed in!');
-    el.authStatusModal.textContent = 'Idle';
-  }, 1000);
+  
+  auth.createUserWithEmailAndPassword(email, password)
+    .then(userCredential => {
+      closeSignIn();
+      showSuccess('Account created and signed in!');
+      el.authStatusModal.textContent = 'Idle';
+    })
+    .catch(error => {
+      console.error('Account creation error:', error);
+      showError(`Account creation failed: ${error.message}`);
+      el.authStatusModal.textContent = 'Idle';
+    });
 }
 
 function signInWithGoogle() {
+  if (!auth) {
+    showError('Firebase not initialized');
+    return;
+  }
+  
   el.authStatusModal.textContent = 'Connecting to Google...';
-  // Placeholder - will integrate with Firebase
-  setTimeout(() => {
-    const mockUser = { email: 'user@gmail.com', displayName: 'Google User' };
-    updateAuthUI(mockUser);
-    closeSignIn();
-    showSuccess('Signed in with Google!');
-    el.authStatusModal.textContent = 'Idle';
-  }, 1000);
+  
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider)
+    .then(result => {
+      closeSignIn();
+      showSuccess('Signed in with Google!');
+      el.authStatusModal.textContent = 'Idle';
+    })
+    .catch(error => {
+      console.error('Google sign-in error:', error);
+      showError(`Google sign-in failed: ${error.message}`);
+      el.authStatusModal.textContent = 'Idle';
+    });
 }
 
 function signOut() {
-  updateAuthUI(null);
-  showInfo('Signed out successfully');
+  if (!auth) {
+    updateAuthUI(null);
+    showInfo('Signed out successfully');
+    return;
+  }
+  
+  auth.signOut().then(() => {
+    updateAuthUI(null);
+    showInfo('Signed out successfully');
+  }).catch(error => {
+    console.error('Sign-out error:', error);
+    showError('Sign-out failed');
+  });
 }
 
 // Form event handlers
@@ -1344,6 +1430,20 @@ window.addEventListener('unhandledrejection', (event) => {
 // Initialize
 try {
   initAccent();
+  // Initialize Firebase when ready
+  if (typeof firebase !== 'undefined') {
+    initializeFirebase();
+  } else {
+    // Wait for Firebase SDK to load (since it's deferred)
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        if (typeof firebase !== 'undefined') {
+          initializeFirebase();
+        }
+      }, 100);
+    });
+  }
+  
   // Initial render with all sections
   markForUpdate(['step1', 'step2', 'step3']);
   renderState.suggestions = true;
