@@ -1136,25 +1136,35 @@ function importTasks(file) {
 }
 
 function saveUserSettings() {
-  const settings = {
-    fontFamily: el.fontSelect?.value || 'system-ui, -apple-system, \'Segoe UI\', Roboto, Inter, Arial, sans-serif',
-    confirmDeletes: el.confirmDeletes?.checked !== false,
-    enableAnimations: el.enableAnimations?.checked !== false,
-    autoFocusInput: el.autoFocusInput?.checked !== false
-  };
-  localStorage.setItem('covey_settings', JSON.stringify(settings));
+  try {
+    const settings = {
+      fontFamily: el.fontSelect?.value || 'system-ui, -apple-system, \'Segoe UI\', Roboto, Inter, Arial, sans-serif',
+      confirmDeletes: el.confirmDeletes?.checked !== false,
+      enableAnimations: el.enableAnimations?.checked !== false,
+      autoFocusInput: el.autoFocusInput?.checked !== false
+    };
+    localStorage.setItem('covey_settings', JSON.stringify(settings));
+  } catch(error) {
+    console.warn('Could not save settings (incognito mode?):', error);
+    // Settings will work for this session but won't persist
+  }
 }
 
 function loadUserSettings() {
-  const settings = JSON.parse(localStorage.getItem('covey_settings') || '{}');
-  
-  // Apply font
-  if (settings.fontFamily) {
-    document.documentElement.style.setProperty('font-family', settings.fontFamily);
+  try {
+    const settings = JSON.parse(localStorage.getItem('covey_settings') || '{}');
+    
+    // Apply font
+    if (settings.fontFamily) {
+      document.documentElement.style.setProperty('font-family', settings.fontFamily);
+    }
+    
+    // Apply other settings as needed
+    return settings;
+  } catch(error) {
+    console.warn('Could not load settings (incognito mode?):', error);
+    return {}; // Return empty settings object as fallback
   }
-  
-  // Apply other settings as needed
-  return settings;
 }
 
 /* ========= Authentication modal ========= */
@@ -1485,8 +1495,14 @@ function showInfo(message) {
 
 /* ========= Enhanced Confirmation Dialogs ========= */
 function requestDelete(task, callback) {
-  const settings = JSON.parse(localStorage.getItem('covey_settings') || '{}');
-  const shouldConfirm = settings.confirmDeletes !== false;
+  let shouldConfirm = true; // Default to confirming deletes
+  
+  try {
+    const settings = JSON.parse(localStorage.getItem('covey_settings') || '{}');
+    shouldConfirm = settings.confirmDeletes !== false;
+  } catch(error) {
+    console.warn('Could not access settings (incognito mode?), using default confirmation:', error);
+  }
   
   if (!shouldConfirm || confirm(`Are you sure you want to delete "${task.title}"?\n\nThis action cannot be undone.`)) {
     try {
@@ -1519,18 +1535,23 @@ function __recordDelete() {
   // Placeholder for analytics
 }
 function loadSettingsIntoUI() {
-  // Load settings into the UI when modal opens
-  const settings = JSON.parse(localStorage.getItem('covey_settings') || '{}');
-  
-  // Load font selection
-  if (el.fontSelect && settings.fontFamily) {
-    el.fontSelect.value = settings.fontFamily;
+  try {
+    // Load settings into the UI when modal opens
+    const settings = JSON.parse(localStorage.getItem('covey_settings') || '{}');
+    
+    // Load font selection
+    if (el.fontSelect && settings.fontFamily) {
+      el.fontSelect.value = settings.fontFamily;
+    }
+    
+    // Load preferences
+    if (el.confirmDeletes) el.confirmDeletes.checked = settings.confirmDeletes !== false;
+    if (el.enableAnimations) el.enableAnimations.checked = settings.enableAnimations !== false;
+    if (el.autoFocusInput) el.autoFocusInput.checked = settings.autoFocusInput !== false;
+  } catch(error) {
+    console.warn('Could not load settings into UI (incognito mode?):', error);
+    // Use default settings if localStorage fails
   }
-  
-  // Load preferences
-  if (el.confirmDeletes) el.confirmDeletes.checked = settings.confirmDeletes !== false;
-  if (el.enableAnimations) el.enableAnimations.checked = settings.enableAnimations !== false;
-  if (el.autoFocusInput) el.autoFocusInput.checked = settings.autoFocusInput !== false;
 }
 
 // Global error handler
