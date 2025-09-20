@@ -113,60 +113,60 @@ input[type="checkbox"]:checked::after{content:"";width:10px;height:6px;border:2p
   </header>
 
   <!-- Stepper -->
-  <div class="btnrow" id="stepper">
-    <button id="step1Btn" class="btn pill primary">1. Add</button>
-    <button id="step2Btn" class="btn pill ghost">2. Categorise & Prioritise</button>
-    <button id="step3Btn" class="btn pill ghost">3. Current list</button>
-  </div>
+  <nav class="btnrow" id="stepper" role="tablist" aria-label="Todo app steps">
+    <button id="step1Btn" class="btn pill primary" role="tab" aria-selected="true" aria-controls="step1" tabindex="0">1. Add</button>
+    <button id="step2Btn" class="btn pill ghost" role="tab" aria-selected="false" aria-controls="step2" tabindex="-1">2. Categorise & Prioritise</button>
+    <button id="step3Btn" class="btn pill ghost" role="tab" aria-selected="false" aria-controls="step3" tabindex="-1">3. Current list</button>
+  </nav>
 
   <!-- Step 1: Add -->
-  <section id="step1" class="view active" aria-hidden="false">
+  <section id="step1" class="view active" role="tabpanel" aria-labelledby="step1Btn" aria-hidden="false">
     <div class="card">
-      <form id="addForm">
-        <input id="taskInput" type="text" placeholder="Add a task…" />
-        <button class="btn pill primary">Add</button>
+      <form id="addForm" aria-label="Add new task">
+        <input id="taskInput" type="text" placeholder="Add a task…" aria-label="Task description" required maxlength="200" autocomplete="off" />
+        <button type="submit" class="btn pill primary" aria-label="Add task">Add</button>
       </form>
-      <div id="suggestions" class="chips"></div>
+      <div id="suggestions" class="chips" role="group" aria-label="Task suggestions"></div>
     </div>
 
     <div class="card">
-      <ul id="inboxList" class="list"></ul>
+      <ul id="inboxList" class="list" role="list" aria-label="Uncategorized tasks"></ul>
     </div>
   </section>
 
   <!-- Step 2: Categorise + Prioritise (LIST layout) -->
-  <section id="step2" class="view" aria-hidden="true">
-    <div class="card" id="categoriseBox"></div>
-    <div class="quads">
+  <section id="step2" class="view" role="tabpanel" aria-labelledby="step2Btn" aria-hidden="true">
+    <div class="card" id="categoriseBox" role="region" aria-label="Task categorization"></div>
+    <div class="quads" role="region" aria-label="Eisenhower Matrix - Task Quadrants">
       <div class="card">
-        <div class="sec-title">Q1 · Urgent + Important</div>
-        <ul id="listQ1" class="list"></ul>
+        <h3 class="sec-title" id="q1-title">Q1 · Urgent + Important</h3>
+        <ul id="listQ1" class="list" role="list" aria-labelledby="q1-title"></ul>
       </div>
       <div class="card">
-        <div class="sec-title">Q2 · Not Urgent + Important</div>
-        <ul id="listQ2" class="list"></ul>
+        <h3 class="sec-title" id="q2-title">Q2 · Not Urgent + Important</h3>
+        <ul id="listQ2" class="list" role="list" aria-labelledby="q2-title"></ul>
       </div>
       <div class="card">
-        <div class="sec-title">Q3 · Urgent + Not Important</div>
-        <ul id="listQ3" class="list"></ul>
+        <h3 class="sec-title" id="q3-title">Q3 · Urgent + Not Important</h3>
+        <ul id="listQ3" class="list" role="list" aria-labelledby="q3-title"></ul>
       </div>
       <div class="card">
-        <div class="sec-title">Q4 · Not Urgent + Not Important</div>
-        <ul id="listQ4" class="list"></ul>
+        <h3 class="sec-title" id="q4-title">Q4 · Not Urgent + Not Important</h3>
+        <ul id="listQ4" class="list" role="list" aria-labelledby="q4-title"></ul>
       </div>
     </div>
   </section>
 
   <!-- Step 3: Current list -->
-  <section id="step3" class="view" aria-hidden="true">
+  <section id="step3" class="view" role="tabpanel" aria-labelledby="step3Btn" aria-hidden="true">
     <div class="card">
       <div class="btnrow" style="margin-bottom:8px">
         <label class="btn pill ghost" style="gap:8px; min-height:36px; min-width:auto">
           <input id="showCompleted" type="checkbox" style="accent-color:var(--accent)"> Show completed
         </label>
-        <button id="clearBtn" class="btn pill ghost">Clear all</button>
+        <button id="clearBtn" class="btn pill ghost" aria-label="Clear all tasks">Clear all</button>
       </div>
-      <ul id="currentList" class="list"></ul>
+      <ul id="currentList" class="list" role="list" aria-label="All tasks by priority"></ul>
     </div>
   </section>
 </div>
@@ -240,8 +240,30 @@ let step = 1;
 let answeredUrgent = null;
 let showCompleted = false;
 
-function loadLocal(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]"); }catch(e){ return []; } }
-function saveLocal(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
+function loadLocal(){ 
+  try{ 
+    const data = localStorage.getItem(STORAGE_KEY);
+    if (!data) return [];
+    const parsed = JSON.parse(data);
+    if (!Array.isArray(parsed)) {
+      console.warn('Invalid data format in localStorage, resetting to empty array');
+      return [];
+    }
+    return parsed;
+  } catch(e){ 
+    console.error('Failed to load from localStorage:', e);
+    showError('Failed to load saved tasks. Starting with empty list.');
+    return []; 
+  } 
+}
+function saveLocal(){ 
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); 
+  } catch(error) {
+    console.error('Failed to save to localStorage:', error);
+    showError('Failed to save data. Your changes may not be preserved.');
+  }
+}
 function uid(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
 function nowMs(){ return Date.now(); }
 function num(v){ return (v===undefined||v===null)? Number.POSITIVE_INFINITY : Number(v); }
@@ -268,6 +290,56 @@ const el = {
 };
 document.getElementById('themeToggle').onclick = toggleTheme;
 
+/* ========= Keyboard Navigation ========= */
+// Tab navigation for stepper
+document.addEventListener('keydown', (e) => {
+  if (e.target.closest('#stepper')) {
+    const buttons = [el.step1Btn, el.step2Btn, el.step3Btn];
+    const currentIndex = buttons.findIndex(btn => btn === e.target);
+    
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      const direction = e.key === 'ArrowLeft' ? -1 : 1;
+      const newIndex = (currentIndex + direction + buttons.length) % buttons.length;
+      buttons[newIndex].focus();
+      setStep(newIndex + 1);
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setStep(currentIndex + 1);
+    }
+  }
+  
+  // ESC to close modal
+  if (e.key === 'Escape' && el.settingsModal.style.display === 'flex') {
+    closeSettings();
+  }
+  
+  // Focus management for modal
+  if (el.settingsModal.style.display === 'flex' && e.key === 'Tab') {
+    trapFocus(e, el.settingsModal);
+  }
+});
+
+function trapFocus(e, container) {
+  const focusableElements = container.querySelectorAll(
+    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+  );
+  const firstElement = focusableElements[0];
+  const lastElement = focusableElements[focusableElements.length - 1];
+  
+  if (e.shiftKey) {
+    if (document.activeElement === firstElement) {
+      lastElement.focus();
+      e.preventDefault();
+    }
+  } else {
+    if (document.activeElement === lastElement) {
+      firstElement.focus();
+      e.preventDefault();
+    }
+  }
+}
+
 /* ========= Accent UI ========= */
 const PRESET_ACCENTS = ["#2563eb","#7c3aed","#db2777","#ef4444","#059669","#0ea5e9","#f59e0b","#111827"];
 function buildSwatches(){ el.accentSwatches.innerHTML = ""; const current = localStorage.getItem(ACCENT_KEY) || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(); PRESET_ACCENTS.forEach(hex=>{ const b = document.createElement('button'); b.className = 'chip'; b.style.borderRadius='999px'; b.style.background=hex; b.style.color='#fff'; b.style.border='1px solid var(--border)'; b.style.minWidth='36px'; b.style.height='28px'; b.title=hex; b.type='button'; b.onclick = ()=>{ applyAccent(hex); buildSwatches(); }; el.accentSwatches.appendChild(b); }); }
@@ -278,18 +350,104 @@ el.step1Btn.onclick = ()=> setStep(1);
 el.step2Btn.onclick = ()=> setStep(2);
 el.step3Btn.onclick = ()=> setStep(3);
 
-function setStep(n){ step = n; const sections = [el.step1, el.step2, el.step3]; sections.forEach((sec, idx)=>{ if(idx === n-1){ sec.classList.add('active'); sec.setAttribute('aria-hidden','false'); } else { sec.classList.remove('active'); sec.setAttribute('aria-hidden','true'); } }); el.step1Btn.className = step===1?'btn pill primary':'btn pill ghost'; el.step2Btn.className = step===2?'btn pill primary':'btn pill ghost'; el.step3Btn.className = step===3?'btn pill primary':'btn pill ghost'; render(); }
+function setStep(n){ step = n; const sections = [el.step1, el.step2, el.step3]; const buttons = [el.step1Btn, el.step2Btn, el.step3Btn]; sections.forEach((sec, idx)=>{ if(idx === n-1){ sec.classList.add('active'); sec.setAttribute('aria-hidden','false'); } else { sec.classList.remove('active'); sec.setAttribute('aria-hidden','true'); } }); buttons.forEach((btn, idx)=>{ if(idx === n-1){ btn.className = 'btn pill primary'; btn.setAttribute('aria-selected', 'true'); btn.setAttribute('tabindex', '0'); } else { btn.className = 'btn pill ghost'; btn.setAttribute('aria-selected', 'false'); btn.setAttribute('tabindex', '-1'); } }); render(); }
 
 /* ========= Add form ========= */
-el.addForm.onsubmit = (e)=>{ e.preventDefault(); const v = el.taskInput.value.trim(); if(!v) return; tasks.unshift({id:uid(), title:v, completed:false, quadrant:null, rank:null, createdAt:nowMs(), updatedAt:nowMs()}); el.taskInput.value=''; saveLocal(); queueUpload(); render(); };
+el.addForm.onsubmit = (e)=>{ 
+  e.preventDefault(); 
+  const v = el.taskInput.value.trim(); 
+  
+  // Input validation
+  if(!v) {
+    showError('Please enter a task description');
+    el.taskInput.focus();
+    return; 
+  }
+  
+  if(v.length > 200) {
+    showError('Task description must be less than 200 characters');
+    el.taskInput.focus();
+    return;
+  }
+  
+  // Check for duplicate tasks
+  if(tasks.some(t => t.title.toLowerCase() === v.toLowerCase())) {
+    showError('A task with this description already exists');
+    el.taskInput.focus();
+    return;
+  }
+  
+  try {
+    tasks.unshift({id:uid(), title:v, completed:false, quadrant:null, rank:null, createdAt:nowMs(), updatedAt:nowMs()}); 
+    el.taskInput.value=''; 
+    saveLocal(); 
+    queueUpload(); 
+    render();
+    showSuccess('Task added successfully');
+  } catch(error) {
+    console.error('Error adding task:', error);
+    showError('Failed to add task. Please try again.');
+  }
+};
 
 /* ========= Current list controls ========= */
 el.showCompleted.onchange = ()=>{ showCompleted = el.showCompleted.checked; render(); };
-el.clearBtn.onclick = ()=>{ if(confirm('Delete all tasks?')){ tasks=[]; saveLocal(); queueUpload(true); render(); } };
+el.clearBtn.onclick = ()=>{ 
+  const taskCount = tasks.length;
+  if(taskCount === 0) {
+    showInfo('No tasks to clear');
+    return;
+  }
+  
+  const confirmed = confirm(`Are you sure you want to delete all ${taskCount} tasks?\n\nThis action cannot be undone.`);
+  if(confirmed){ 
+    try {
+      tasks=[]; 
+      saveLocal(); 
+      queueUpload(true); 
+      render();
+      showSuccess(`Cleared ${taskCount} tasks successfully`);
+    } catch(error) {
+      console.error('Error clearing tasks:', error);
+      showError('Failed to clear tasks. Please try again.');
+    }
+  } 
+};
 
 /* ========= Suggestions ========= */
-function computeSuggestions(){ const verbs = new Map(); for(const t of tasks){ const w = ((t.title||'').split(/\s+/)[0]||'').toLowerCase(); if(!w) continue; verbs.set(w, (verbs.get(w)||0)+1); } const common = Array.from(verbs.entries()).sort((a,b)=>b[1]-a[1]).map(([w])=>w); const base = ["Plan","Book","Email","Call","Review","Draft","Schedule","Organise"]; const pool = [...new Set([...common, ...base])].slice(0,8); return pool.map(v => v.charAt(0).toUpperCase()+v.slice(1) + " …"); }
-function applySuggestion(s){ const txt = s.endsWith(' …') ? s.slice(0,-2) + ' ' : s + ' '; el.taskInput.value = txt; el.taskInput.focus(); el.taskInput.setSelectionRange(txt.length, txt.length); }
+function computeSuggestions(){ 
+  try {
+    const verbs = new Map(); 
+    for(const t of tasks){ 
+      const title = t.title || '';
+      if (typeof title !== 'string') continue;
+      const w = title.split(/\s+/)[0]?.toLowerCase() || '';
+      if(!w) continue; 
+      verbs.set(w, (verbs.get(w)||0)+1); 
+    } 
+    const common = Array.from(verbs.entries())
+      .sort((a,b)=>b[1]-a[1])
+      .map(([w])=>w)
+      .filter(w => w.length > 2); // Filter out very short words
+    const base = ["Plan","Book","Email","Call","Review","Draft","Schedule","Organise"]; 
+    const pool = [...new Set([...common, ...base])].slice(0,8); 
+    return pool.map(v => v.charAt(0).toUpperCase()+v.slice(1) + " …"); 
+  } catch(error) {
+    console.error('Error computing suggestions:', error);
+    return ["Plan …", "Email …", "Call …", "Review …"];
+  }
+}
+function applySuggestion(s){ 
+  try {
+    const txt = s.endsWith(' …') ? s.slice(0,-2) + ' ' : s + ' '; 
+    el.taskInput.value = txt; 
+    el.taskInput.focus(); 
+    el.taskInput.setSelectionRange(txt.length, txt.length);
+  } catch(error) {
+    console.error('Error applying suggestion:', error);
+    showError('Failed to apply suggestion');
+  }
+}
 
 /* ========= Categorise flow ========= */
 function answerUrgent(val){ answeredUrgent = val; render(); }
@@ -344,27 +502,106 @@ function render(){
 
 /* ========= Row builders ========= */
 function rowItem(t, opts){
-  const li = document.createElement('li'); li.dataset.id = t.id; li.className = 'task' + ((opts && opts.showQuadrant && t.quadrant)? (' q-' + t.quadrant) : '');
-  const cb = document.createElement('input'); cb.type='checkbox'; cb.checked=t.completed; cb.onchange = ()=>{ t.completed = !t.completed; t.updatedAt = Date.now(); saveLocal(); queueUpload(); render(); };
-  const title = document.createElement('div'); title.className='title'; title.textContent=t.title || ''; if(t.completed){ title.className+=' strike'; }
-  if(opts && opts.showQuadrant && t.quadrant){ const pill = document.createElement('span'); pill.className = 'qpill '+t.quadrant; pill.textContent = t.quadrant; title.appendChild(pill); }
+  const li = document.createElement('li'); 
+  li.dataset.id = t.id; 
+  li.className = 'task' + ((opts && opts.showQuadrant && t.quadrant)? (' q-' + t.quadrant) : '');
+  li.setAttribute('role', 'listitem');
+  
+  const cb = document.createElement('input'); 
+  cb.type='checkbox'; 
+  cb.id = `task-${t.id}`;
+  cb.checked=t.completed; 
+  cb.setAttribute('aria-describedby', `task-title-${t.id}`);
+  cb.onchange = ()=>{ t.completed = !t.completed; t.updatedAt = Date.now(); saveLocal(); queueUpload(); render(); };
+  
+  const title = document.createElement('div'); 
+  title.className='title'; 
+  title.id = `task-title-${t.id}`;
+  title.textContent=t.title || ''; 
+  if(t.completed){ title.className+=' strike'; }
+  
+  if(opts && opts.showQuadrant && t.quadrant){ 
+    const pill = document.createElement('span'); 
+    pill.className = 'qpill '+t.quadrant; 
+    pill.textContent = t.quadrant;
+    pill.setAttribute('aria-label', `Priority quadrant ${t.quadrant}`);
+    title.appendChild(pill); 
+  }
+  
   const spacer = document.createElement('div'); spacer.className='spacer';
-  const del = document.createElement('button'); del.className='btn pill ghost closebtn'; del.textContent='×'; del.title='Delete task'; del.onclick = ()=> requestDelete(t, ()=>{ tasks = tasks.filter(x=>x.id!==t.id); saveLocal(); queueUpload(); __recordDelete(); render(); });
-  li.append(cb, title, spacer, del); return li;
+  
+  const del = document.createElement('button'); 
+  del.className='btn pill ghost closebtn'; 
+  del.textContent='×'; 
+  del.setAttribute('aria-label', `Delete task: ${t.title}`);
+  del.title='Delete task';
+  del.onclick = ()=> requestDelete(t, ()=>{ tasks = tasks.filter(x=>x.id!==t.id); saveLocal(); queueUpload(); __recordDelete(); render(); });
+  
+  li.append(cb, title, spacer, del); 
+  return li;
 }
 
 function mountQuadrantList(container, arr, key){
-  container.innerHTML=''; if(!arr.length){ container.innerHTML='<p class="muted" style="font-size:13px;text-align:center">No tasks</p>'; return; }
+  container.innerHTML=''; 
+  if(!arr.length){ 
+    container.innerHTML='<p class="muted" style="font-size:13px;text-align:center" role="status">No tasks</p>'; 
+    return; 
+  }
+  
   arr.forEach((t, idx)=>{
-    const li = document.createElement('li'); li.className='task'; li.dataset.id=t.id;
-    const cb = document.createElement('input'); cb.type='checkbox'; cb.checked=t.completed; cb.onchange = ()=>{ t.completed=!t.completed; t.updatedAt=Date.now(); saveLocal(); queueUpload(); render(); };
-    const title = document.createElement('div'); title.className='title'; title.textContent=t.title || ''; if(t.completed){ title.className+=' strike'; }
+    const li = document.createElement('li'); 
+    li.className='task'; 
+    li.dataset.id=t.id;
+    li.setAttribute('role', 'listitem');
+    
+    const cb = document.createElement('input'); 
+    cb.type='checkbox'; 
+    cb.id = `task-${key}-${t.id}`;
+    cb.checked=t.completed; 
+    cb.setAttribute('aria-describedby', `task-title-${key}-${t.id}`);
+    cb.onchange = ()=>{ t.completed=!t.completed; t.updatedAt=Date.now(); saveLocal(); queueUpload(); render(); };
+    
+    const title = document.createElement('div'); 
+    title.className='title'; 
+    title.id = `task-title-${key}-${t.id}`;
+    title.textContent=t.title || ''; 
+    if(t.completed){ title.className+=' strike'; }
+    
     const spacer = document.createElement('div'); spacer.className='spacer';
-    const actions = document.createElement('div'); actions.className='row-actions';
-    const up = document.createElement('button'); up.className='btn icon primary'; up.title='Move up'; up.innerHTML='<span>↑</span>'; up.onclick=()=>moveWithinQuadrant(t.id,key,-1);
-    const down = document.createElement('button'); down.className='btn icon primary'; down.title='Move down'; down.innerHTML='<span>↓</span>'; down.onclick=()=>moveWithinQuadrant(t.id,key,+1);
-    const decat = document.createElement('button'); decat.className='btn icon ghost'; decat.title='De‑categorise'; decat.innerHTML='<span>↩</span>'; decat.onclick=()=>{ t.quadrant=null; t.rank=null; t.updatedAt=Date.now(); saveLocal(); queueUpload(); render(); };
-    const del = document.createElement('button'); del.className='btn icon ghost closebtn'; del.title='Delete'; del.textContent='×'; del.onclick=()=> requestDelete(t, ()=>{ tasks = tasks.filter(x=>x.id!==t.id); saveLocal(); queueUpload(); __recordDelete(); render(); });
+    
+    const actions = document.createElement('div'); 
+    actions.className='row-actions';
+    actions.setAttribute('role', 'group');
+    actions.setAttribute('aria-label', `Actions for ${t.title}`);
+    
+    const up = document.createElement('button'); 
+    up.className='btn icon primary'; 
+    up.setAttribute('aria-label', `Move ${t.title} up in priority`);
+    up.title='Move up'; 
+    up.innerHTML='<span aria-hidden="true">↑</span>'; 
+    up.onclick=()=>moveWithinQuadrant(t.id,key,-1);
+    
+    const down = document.createElement('button'); 
+    down.className='btn icon primary'; 
+    down.setAttribute('aria-label', `Move ${t.title} down in priority`);
+    down.title='Move down'; 
+    down.innerHTML='<span aria-hidden="true">↓</span>'; 
+    down.onclick=()=>moveWithinQuadrant(t.id,key,+1);
+    
+    const decat = document.createElement('button'); 
+    decat.className='btn icon ghost'; 
+    decat.setAttribute('aria-label', `Remove ${t.title} from category`);
+    decat.title='De‑categorise'; 
+    decat.innerHTML='<span aria-hidden="true">↩</span>'; 
+    decat.onclick=()=>{ t.quadrant=null; t.rank=null; t.updatedAt=Date.now(); saveLocal(); queueUpload(); render(); };
+    
+    const del = document.createElement('button'); 
+    del.className='btn icon ghost closebtn'; 
+    del.setAttribute('aria-label', `Delete task: ${t.title}`);
+    del.title='Delete'; 
+    del.textContent='×'; 
+    del.onclick=()=> requestDelete(t, ()=>{ tasks = tasks.filter(x=>x.id!==t.id); saveLocal(); queueUpload(); __recordDelete(); render(); });
+    
     actions.append(up,down,decat,del);
     li.append(cb,title,spacer,actions);
     container.appendChild(li);
@@ -375,8 +612,89 @@ function mountQuadrantList(container, arr, key){
 const modal = document.getElementById('settingsModal');
 byId('settingsBtn').onclick = ()=> openSettings();
 byId('closeSettings').onclick = ()=> closeSettings();
-function openSettings(){ modal.style.display='flex'; loadSettingsIntoUI(); buildSwatches(); }
-function closeSettings(){ modal.style.display='none'; }
+function openSettings(){ modal.style.display='flex'; modal.setAttribute('aria-hidden', 'false'); loadSettingsIntoUI(); buildSwatches(); // Focus first focusable element setTimeout(() => { const firstFocusable = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'); if (firstFocusable) firstFocusable.focus(); }, 100); }
+function closeSettings(){ modal.style.display='none'; modal.setAttribute('aria-hidden', 'true'); // Return focus to settings button el.settingsBtn.focus(); }
+
+/* ========= Error Handling & Notifications ========= */
+let notificationTimeout = null;
+
+function showNotification(message, type = 'info') {
+  // Clear existing notification
+  if (notificationTimeout) {
+    clearTimeout(notificationTimeout);
+  }
+  
+  // Remove existing notifications
+  const existing = document.querySelector('.notification');
+  if (existing) existing.remove();
+  
+  // Create notification
+  const notification = document.createElement('div');
+  notification.className = `notification notification-${type}`;
+  notification.textContent = message;
+  notification.setAttribute('role', 'alert');
+  notification.setAttribute('aria-live', 'polite');
+  
+  // Add styles for notification
+  Object.assign(notification.style, {
+    position: 'fixed',
+    top: '20px',
+    right: '20px',
+    background: type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#2563eb',
+    color: 'white',
+    padding: '12px 20px',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    zIndex: '1000',
+    maxWidth: '300px',
+    fontSize: '14px',
+    transform: 'translateX(100%)',
+    transition: 'transform 0.3s ease'
+  });
+  
+  document.body.appendChild(notification);
+  
+  // Animate in
+  setTimeout(() => {
+    notification.style.transform = 'translateX(0)';
+  }, 10);
+  
+  // Auto-hide after 4 seconds
+  notificationTimeout = setTimeout(() => {
+    notification.style.transform = 'translateX(100%)';
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+    }, 300);
+  }, 4000);
+}
+
+function showError(message) {
+  showNotification(message, 'error');
+}
+
+function showSuccess(message) {
+  showNotification(message, 'success');
+}
+
+function showInfo(message) {
+  showNotification(message, 'info');
+}
+
+/* ========= Enhanced Confirmation Dialogs ========= */
+function requestDelete(task, callback) {
+  const confirmed = confirm(`Are you sure you want to delete "${task.title}"?\n\nThis action cannot be undone.`);
+  if (confirmed) {
+    try {
+      callback();
+      showSuccess('Task deleted successfully');
+    } catch(error) {
+      console.error('Error deleting task:', error);
+      showError('Failed to delete task. Please try again.');
+    }
+  }
+}
 
 /* ========= Missing function declarations ========= */
 function byId(id) { return document.getElementById(id); }
@@ -405,9 +723,26 @@ function loadSettingsIntoUI() {
   if (el.enableSync) el.enableSync.checked = syncSettings.enabled || false;
 }
 
+// Global error handler
+window.addEventListener('error', (event) => {
+  console.error('Global error:', event.error);
+  showError('An unexpected error occurred. Please refresh the page if issues persist.');
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled promise rejection:', event.reason);
+  showError('An unexpected error occurred. Please refresh the page if issues persist.');
+});
+
 // Initialize
-initAccent();
-render();
+try {
+  initAccent();
+  render();
+  showInfo('Welcome to Covey To-Do!');
+} catch(error) {
+  console.error('Initialization error:', error);
+  showError('Failed to initialize the application. Please refresh the page.');
+}
 </script>
 
 </body>
