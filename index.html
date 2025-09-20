@@ -26,7 +26,7 @@
   --pill-bg:#1b1e24; --pill-text:#cbd5e1; --shadow:0 1px 2px rgba(0,0,0,.6), 0 6px 18px rgba(0,0,0,.45);
 }
 *{box-sizing:border-box}
-body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;background:var(--bg);color:var(--text)}
+body{margin:0;font-family:var(--font-family, system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif);background:var(--bg);color:var(--text)}
 .container{max-width:980px;margin:0 auto;padding:16px;text-align:center}
 header{margin:6px 0 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
 h1{font-size:20px;margin:0}
@@ -1086,7 +1086,7 @@ el.importData.onclick = () => el.importFile.click();
 el.importFile.onchange = (e) => importTasks(e.target.files[0]);
 
 function applyFont(fontFamily) {
-  document.documentElement.style.setProperty('font-family', fontFamily);
+  document.documentElement.style.setProperty('--font-family', fontFamily);
   // Save to localStorage
   saveUserSettings();
 }
@@ -1158,7 +1158,7 @@ function loadUserSettings() {
     
     // Apply font
     if (settings.fontFamily) {
-      document.documentElement.style.setProperty('font-family', settings.fontFamily);
+      document.documentElement.style.setProperty('--font-family', settings.fontFamily);
     }
     
     // Apply other settings as needed
