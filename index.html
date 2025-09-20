@@ -215,9 +215,11 @@ textarea:focus-visible {
 <body>
 <div class="container" id="root">
   <header>
-    <button id="themeToggle" class="btn pill ghost toggle" aria-label="Toggle theme">🌓</button>
-    <h1 style="margin:0 auto">Covey To‑Do</h1>
-    <div class="row" style="justify-content:flex-end; gap:12px">
+    <div style="flex: 1; display: flex; justify-content: flex-start;">
+      <button id="themeToggle" class="btn pill ghost toggle" aria-label="Toggle theme">🌓</button>
+    </div>
+    <h1 style="margin:0; flex: 0 0 auto;">Covey To‑Do</h1>
+    <div class="row" style="flex: 1; justify-content:flex-end; gap:12px">
       <span id="authStatus" class="pill" style="min-height:36px;font-weight:600;padding:8px 14px;font-size:13px">Signed out</span>
       <button id="signInBtn" class="btn pill primary" aria-haspopup="dialog" aria-controls="signInModal" style="font-weight:700">Sign in</button>
       <button id="settingsBtn" class="btn pill ghost" aria-haspopup="dialog" aria-controls="settingsModal">⚙︎</button>
