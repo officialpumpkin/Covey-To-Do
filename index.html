@@ -97,8 +97,104 @@ input[type="checkbox"]:focus{outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.3
 input[type="checkbox"]:checked{background:var(--accent);border-color:var(--accent)}
 input[type="checkbox"]:checked::after{content:"";width:10px;height:6px;border:2px solid #fff;border-top:0;border-left:0;transform:translateY(-1px) rotate(45deg)}
 
-/* Responsive tweak */
-@media (max-width:560px){.btnrow>.btn{max-width:100%}}
+/* Enhanced Responsive Design */
+@media (max-width:560px){
+  .btnrow>.btn{max-width:100%}
+  .container{padding:12px}
+  h1{font-size:18px}
+  .quads{grid-template-columns:1fr;gap:8px}
+  .task{padding:10px;gap:8px}
+  .btn.icon{min-width:32px;min-height:32px}
+  #addForm{grid-template-columns:1fr;gap:8px}
+  #addForm button{justify-self:stretch}
+}
+
+/* Loading states */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+  position: relative;
+}
+
+.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  margin: -10px 0 0 -10px;
+  border: 2px solid var(--muted);
+  border-top: 2px solid var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Better hover states */
+.chip:hover,
+.task:hover {
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(37,99,235,0.15);
+}
+
+/* Focus styles */
+.btn:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Improved animations */
+.task {
+  transition: all 0.2s ease;
+}
+
+.task:hover {
+  transform: translateY(-1px);
+}
+
+.view {
+  transition: opacity .3s ease, transform .3s ease, max-height .4s ease;
+}
+
+/* Success states */
+.success-flash {
+  animation: successFlash 0.6s ease;
+}
+
+@keyframes successFlash {
+  0% { background-color: var(--card); }
+  50% { background-color: rgba(16,185,129,0.1); }
+  100% { background-color: var(--card); }
+}
+
+/* Empty state styling */
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--muted);
+}
+
+.empty-state::before {
+  content: '📝';
+  font-size: 48px;
+  display: block;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+/* Better card spacing on larger screens */
+@media (min-width: 1200px) {
+  .container { max-width: 1100px; }
+  .card { padding: 20px; }
+  .quads { gap: 16px; }
+}
 </style>
 </head>
 <body>
@@ -240,6 +336,27 @@ let step = 1;
 let answeredUrgent = null;
 let showCompleted = false;
 
+// Performance optimization: track what needs re-rendering
+let renderState = {
+  step1: true,
+  step2: true, 
+  step3: true,
+  suggestions: true
+};
+
+// Debounce helper for input handling
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
 function loadLocal(){ 
   try{ 
     const data = localStorage.getItem(STORAGE_KEY);
@@ -350,7 +467,40 @@ el.step1Btn.onclick = ()=> setStep(1);
 el.step2Btn.onclick = ()=> setStep(2);
 el.step3Btn.onclick = ()=> setStep(3);
 
-function setStep(n){ step = n; const sections = [el.step1, el.step2, el.step3]; const buttons = [el.step1Btn, el.step2Btn, el.step3Btn]; sections.forEach((sec, idx)=>{ if(idx === n-1){ sec.classList.add('active'); sec.setAttribute('aria-hidden','false'); } else { sec.classList.remove('active'); sec.setAttribute('aria-hidden','true'); } }); buttons.forEach((btn, idx)=>{ if(idx === n-1){ btn.className = 'btn pill primary'; btn.setAttribute('aria-selected', 'true'); btn.setAttribute('tabindex', '0'); } else { btn.className = 'btn pill ghost'; btn.setAttribute('aria-selected', 'false'); btn.setAttribute('tabindex', '-1'); } }); render(); }
+function setStep(n){ 
+  if (step === n) return; // Don't re-render if already on this step
+  
+  step = n; 
+  const sections = [el.step1, el.step2, el.step3]; 
+  const buttons = [el.step1Btn, el.step2Btn, el.step3Btn]; 
+  
+  sections.forEach((sec, idx)=>{ 
+    if(idx === n-1){ 
+      sec.classList.add('active'); 
+      sec.setAttribute('aria-hidden','false'); 
+    } else { 
+      sec.classList.remove('active'); 
+      sec.setAttribute('aria-hidden','true'); 
+    } 
+  }); 
+  
+  buttons.forEach((btn, idx)=>{ 
+    if(idx === n-1){ 
+      btn.className = 'btn pill primary'; 
+      btn.setAttribute('aria-selected', 'true'); 
+      btn.setAttribute('tabindex', '0'); 
+    } else { 
+      btn.className = 'btn pill ghost'; 
+      btn.setAttribute('aria-selected', 'false'); 
+      btn.setAttribute('tabindex', '-1'); 
+    } 
+  }); 
+  
+  // Only re-render the current step
+  const updateMap = {};
+  updateMap[`step${n}`] = true;
+  render(updateMap);
+}
 
 /* ========= Add form ========= */
 el.addForm.onsubmit = (e)=>{ 
@@ -378,20 +528,48 @@ el.addForm.onsubmit = (e)=>{
   }
   
   try {
+    addLoadingState(el.addForm);
     tasks.unshift({id:uid(), title:v, completed:false, quadrant:null, rank:null, createdAt:nowMs(), updatedAt:nowMs()}); 
     el.taskInput.value=''; 
     saveLocal(); 
     queueUpload(); 
+    
+    // Only update step1 and suggestions
+    markForUpdate(['step1']);
+    renderState.suggestions = true;
     render();
+    
+    // Visual feedback
+    removeLoadingState(el.addForm);
+    addSuccessFlash(el.inboxList);
     showSuccess('Task added successfully');
+    
+    // Focus back to input for quick task entry
+    setTimeout(() => el.taskInput.focus(), 100);
   } catch(error) {
+    removeLoadingState(el.addForm);
     console.error('Error adding task:', error);
     showError('Failed to add task. Please try again.');
   }
 };
 
+// Add debounced input handler for real-time suggestions
+const debouncedSuggestionUpdate = debounce(() => {
+  if (step === 1) {
+    renderState.suggestions = true;
+    render({ suggestions: true });
+  }
+}, 300);
+
+// Update suggestions as user types
+el.taskInput.addEventListener('input', debouncedSuggestionUpdate);
+
 /* ========= Current list controls ========= */
-el.showCompleted.onchange = ()=>{ showCompleted = el.showCompleted.checked; render(); };
+el.showCompleted.onchange = ()=>{ 
+  showCompleted = el.showCompleted.checked; 
+  markForUpdate(['step3']);
+  render(); 
+};
 el.clearBtn.onclick = ()=>{ 
   const taskCount = tasks.length;
   if(taskCount === 0) {
@@ -402,12 +580,17 @@ el.clearBtn.onclick = ()=>{
   const confirmed = confirm(`Are you sure you want to delete all ${taskCount} tasks?\n\nThis action cannot be undone.`);
   if(confirmed){ 
     try {
+      addLoadingState(el.clearBtn);
       tasks=[]; 
       saveLocal(); 
       queueUpload(true); 
+      markForUpdate(['step1', 'step2', 'step3']);
+      renderState.suggestions = true;
       render();
+      removeLoadingState(el.clearBtn);
       showSuccess(`Cleared ${taskCount} tasks successfully`);
     } catch(error) {
+      removeLoadingState(el.clearBtn);
       console.error('Error clearing tasks:', error);
       showError('Failed to clear tasks. Please try again.');
     }
@@ -450,54 +633,199 @@ function applySuggestion(s){
 }
 
 /* ========= Categorise flow ========= */
-function answerUrgent(val){ answeredUrgent = val; render(); }
-function answerImportant(val){ const current = inbox(false)[0]; if(!current) return; const urgent = !!answeredUrgent; const q = urgent ? (val ? 'Q1' : 'Q3') : (val ? 'Q2' : 'Q4'); const maxRank = Math.max(-1, ...tasks.filter(t=>t.quadrant===q && t.rank!=null).map(t=>t.rank)); current.quadrant = q; current.rank = maxRank + 1; current.updatedAt = nowMs(); saveLocal(); queueUpload(); answeredUrgent = null; render(); }
+function answerUrgent(val){ 
+  answeredUrgent = val; 
+  markForUpdate(['step2']);
+  render(); 
+}
+
+function answerImportant(val){ 
+  const current = inbox(false)[0]; 
+  if(!current) return; 
+  
+  const urgent = !!answeredUrgent; 
+  const q = urgent ? (val ? 'Q1' : 'Q3') : (val ? 'Q2' : 'Q4'); 
+  const maxRank = Math.max(-1, ...tasks.filter(t=>t.quadrant===q && t.rank!=null).map(t=>t.rank)); 
+  
+  current.quadrant = q; 
+  current.rank = maxRank + 1; 
+  current.updatedAt = nowMs(); 
+  
+  saveLocal(); 
+  queueUpload(); 
+  answeredUrgent = null; 
+  
+  // Update both step1 (inbox) and step2 (quadrants)
+  markForUpdate(['step1', 'step2', 'step3']);
+  render();
+}
 
 /* ========= Prioritise (LIST layout) ========= */
-function moveWithinQuadrant(id, qKey, delta){ const q = tasks.filter(t=>t.quadrant===qKey).sort((a,b)=> (num(a.rank)-num(b.rank)) || (a.createdAt-b.createdAt)); const index = q.findIndex(x=>x.id===id); if(index<0) return; const target = index+delta; if(target<0 || target>=q.length) return; const a = q[index], b = q[target]; const tmp = a.rank; a.rank = b.rank; b.rank = tmp; normalizeRanks(qKey); saveLocal(); queueUpload(); render(); }
-function normalizeRanks(qKey){ const q = tasks.filter(t=>t.quadrant===qKey).sort((a,b)=> (num(a.rank)-num(b.rank)) || (a.createdAt-b.createdAt)); q.forEach((t,i)=> { t.rank = i; t.updatedAt = nowMs(); }); }
+function moveWithinQuadrant(id, qKey, delta){ 
+  const q = tasks.filter(t=>t.quadrant===qKey).sort((a,b)=> (num(a.rank)-num(b.rank)) || (a.createdAt-b.createdAt)); 
+  const index = q.findIndex(x=>x.id===id); 
+  if(index<0) return; 
+  const target = index+delta; 
+  if(target<0 || target>=q.length) return; 
+  
+  const a = q[index], b = q[target]; 
+  const tmp = a.rank; 
+  a.rank = b.rank; 
+  b.rank = tmp; 
+  
+  normalizeRanks(qKey); 
+  saveLocal(); 
+  queueUpload(); 
+  
+  // Only update step2 and step3 (quadrants and current list)
+  markForUpdate(['step2', 'step3']);
+  render(); 
+}
 
-/* ========= Render ========= */
-function render(){
-  // Step 1
+function normalizeRanks(qKey){ 
+  const q = tasks.filter(t=>t.quadrant===qKey).sort((a,b)=> (num(a.rank)-num(b.rank)) || (a.createdAt-b.createdAt)); 
+  q.forEach((t,i)=> { t.rank = i; t.updatedAt = nowMs(); }); 
+}
+
+/* ========= Performance-optimized Render ========= */
+function render(forceUpdate = {}){
+  // Merge force updates with render state
+  const shouldUpdate = { ...renderState, ...forceUpdate };
+  
+  // Step 1 - Only update if needed
+  if (shouldUpdate.step1) {
+    renderStep1();
+    renderState.step1 = false;
+    renderState.suggestions = false; // Clear suggestions flag as renderStep1 includes them
+  }
+  
+  // Step 2 - Only update if needed
+  if (shouldUpdate.step2) {
+    renderStep2();
+    renderState.step2 = false;
+  }
+  
+  // Step 3 - Only update if needed
+  if (shouldUpdate.step3) {
+    renderStep3();
+    renderState.step3 = false;
+  }
+  
+  // Update suggestions separately if needed (only if step1 wasn't updated)
+  if (shouldUpdate.suggestions && !shouldUpdate.step1) {
+    renderSuggestions();
+    renderState.suggestions = false;
+  }
+}
+
+function renderStep1() {
   const unc = inbox(false);
-  el.inboxList.innerHTML = unc.length? '' : '<p class="muted" style="font-size:13px;text-align:center">No tasks</p>';
-  unc.forEach(t => el.inboxList.appendChild(rowItem(t, {showQuadrant:false})));
-  // Suggestions
-  const sugg = computeSuggestions(); el.suggestions.innerHTML=''; sugg.forEach(s => { const b = document.createElement('button'); b.className='chip'; b.type='button'; b.textContent=s; b.onclick = ()=> applySuggestion(s); el.suggestions.appendChild(b); });
+  updateList(el.inboxList, unc, {showQuadrant:false}, 'No tasks');
+  renderSuggestions();
+}
 
-  // Step 2
+function renderStep2() {
   const g = groups(true);
   const current = inbox(false)[0];
-  if(!current){ el.categoriseBox.innerHTML = '<div class="muted" style="text-align:center">No uncategorised tasks.</div>'; }
-  else if(answeredUrgent===null){ el.categoriseBox.innerHTML = `
-    <div class="sec-title">Categorise</div>
-    <div class="task"><div class="title">${escapeHtml(current.title)}</div><div class="spacer"></div></div>
-    <div class="btnrow" style="margin-top:10px">
-      <button class="btn pill primary" onclick="answerUrgent(true)">Urgent</button>
-      <button class="btn pill ghost" onclick="answerUrgent(false)">Not urgent</button>
-    </div>`; }
-  else { el.categoriseBox.innerHTML = `
-    <div class="sec-title">Categorise</div>
-    <div class="task"><div class="title">${escapeHtml(current.title)}</div><div class="spacer"></div></div>
-    <div class="btnrow" style="margin-top:10px">
-      <button class="btn pill primary" onclick="answerImportant(true)">Important</button>
-      <button class="btn pill ghost" onclick="answerImportant(false)">Not important</button>
-    </div>
-    <div class="btnrow" style="margin-top:8px">
-      <button class="btn pill ghost" onclick="answerUrgent(null)">Back</button>
-    </div>`; }
-
+  
+  // Update categorization box
+  updateCategoriseBox(current);
+  
+  // Update quadrant lists
   mountQuadrantList(el.listQ1, g.Q1, 'Q1');
   mountQuadrantList(el.listQ2, g.Q2, 'Q2');
   mountQuadrantList(el.listQ3, g.Q3, 'Q3');
   mountQuadrantList(el.listQ4, g.Q4, 'Q4');
+}
 
-  // Step 3
+function renderStep3() {
   const all = allSorted(showCompleted);
-  el.currentList.innerHTML = all.length? '' : '<p class="muted" style="font-size:13px;text-align:center">No tasks</p>';
-  all.forEach(t => el.currentList.appendChild(rowItem(t, {showQuadrant:true})));
+  updateList(el.currentList, all, {showQuadrant:true}, 'No tasks');
   el.showCompleted.checked = showCompleted;
+}
+
+function renderSuggestions() {
+  const sugg = computeSuggestions(); 
+  el.suggestions.innerHTML=''; 
+  const fragment = document.createDocumentFragment();
+  sugg.forEach(s => { 
+    const b = document.createElement('button'); 
+    b.className='chip'; 
+    b.type='button'; 
+    b.textContent=s; 
+    b.onclick = ()=> applySuggestion(s); 
+    fragment.appendChild(b); 
+  });
+  el.suggestions.appendChild(fragment);
+}
+
+// Optimized list update function with proper semantic empty states
+function updateList(container, items, opts, emptyMessage) {
+  if (!items.length) {
+    const emptyLi = document.createElement('li');
+    emptyLi.className = 'empty-state';
+    emptyLi.setAttribute('role', 'listitem');
+    emptyLi.setAttribute('aria-live', 'polite');
+    emptyLi.innerHTML = `<p>${escapeHtml(emptyMessage)}</p>`;
+    container.innerHTML = '';
+    container.appendChild(emptyLi);
+    return;
+  }
+  
+  // Use document fragment for efficient DOM manipulation
+  const fragment = document.createDocumentFragment();
+  items.forEach(item => fragment.appendChild(rowItem(item, opts)));
+  
+  container.innerHTML = '';
+  container.appendChild(fragment);
+}
+
+function updateCategoriseBox(current) {
+  if(!current){ 
+    el.categoriseBox.innerHTML = '<div class="muted" style="text-align:center" role="status">No uncategorised tasks.</div>'; 
+  }
+  else if(answeredUrgent===null){ 
+    el.categoriseBox.innerHTML = `
+      <div class="sec-title">Categorise</div>
+      <div class="task"><div class="title">${escapeHtml(current.title)}</div><div class="spacer"></div></div>
+      <div class="btnrow" style="margin-top:10px">
+        <button class="btn pill primary" onclick="answerUrgent(true)">Urgent</button>
+        <button class="btn pill ghost" onclick="answerUrgent(false)">Not urgent</button>
+      </div>`; 
+  }
+  else { 
+    el.categoriseBox.innerHTML = `
+      <div class="sec-title">Categorise</div>
+      <div class="task"><div class="title">${escapeHtml(current.title)}</div><div class="spacer"></div></div>
+      <div class="btnrow" style="margin-top:10px">
+        <button class="btn pill primary" onclick="answerImportant(true)">Important</button>
+        <button class="btn pill ghost" onclick="answerImportant(false)">Not important</button>
+      </div>
+      <div class="btnrow" style="margin-top:8px">
+        <button class="btn pill ghost" onclick="answerUrgent(null)">Back</button>
+      </div>`; 
+  }
+}
+
+// Mark what needs to be re-rendered
+function markForUpdate(sections = ['step1', 'step2', 'step3']) {
+  sections.forEach(section => {
+    if (renderState.hasOwnProperty(section)) {
+      renderState[section] = true;
+    }
+  });
+}
+
+// Safe render helper for forced updates
+function forceRender(updateMap = {}) {
+  const hasUpdates = Object.values(renderState).some(flag => flag) || Object.keys(updateMap).length > 0;
+  if (!hasUpdates) {
+    // Fallback to full render if no updates specified (safety net)
+    console.warn('No render flags set, performing full render');
+    markForUpdate(['step1', 'step2', 'step3']);
+    renderState.suggestions = true;
+  }
+  render(updateMap);
 }
 
 /* ========= Row builders ========= */
@@ -512,7 +840,18 @@ function rowItem(t, opts){
   cb.id = `task-${t.id}`;
   cb.checked=t.completed; 
   cb.setAttribute('aria-describedby', `task-title-${t.id}`);
-  cb.onchange = ()=>{ t.completed = !t.completed; t.updatedAt = Date.now(); saveLocal(); queueUpload(); render(); };
+  cb.onchange = ()=>{ 
+    t.completed = !t.completed; 
+    t.updatedAt = Date.now(); 
+    saveLocal(); 
+    queueUpload(); 
+    // Smart update: only update affected steps
+    const updates = ['step3']; // Always update step3 (current list)
+    if (!t.quadrant) updates.push('step1'); // Update step1 if in inbox
+    if (t.quadrant) updates.push('step2'); // Update step2 if in quadrants
+    markForUpdate(updates);
+    render(); 
+  };
   
   const title = document.createElement('div'); 
   title.className='title'; 
@@ -535,77 +874,123 @@ function rowItem(t, opts){
   del.textContent='×'; 
   del.setAttribute('aria-label', `Delete task: ${t.title}`);
   del.title='Delete task';
-  del.onclick = ()=> requestDelete(t, ()=>{ tasks = tasks.filter(x=>x.id!==t.id); saveLocal(); queueUpload(); __recordDelete(); render(); });
+  del.onclick = ()=> requestDelete(t, ()=>{ 
+    tasks = tasks.filter(x=>x.id!==t.id); 
+    saveLocal(); 
+    queueUpload(); 
+    __recordDelete(); 
+    markForUpdate(['step1', 'step2', 'step3']); 
+    render(); 
+  });
   
   li.append(cb, title, spacer, del); 
   return li;
 }
 
 function mountQuadrantList(container, arr, key){
-  container.innerHTML=''; 
   if(!arr.length){ 
-    container.innerHTML='<p class="muted" style="font-size:13px;text-align:center" role="status">No tasks</p>'; 
+    const emptyLi = document.createElement('li');
+    emptyLi.className = 'empty-state';
+    emptyLi.setAttribute('role', 'listitem');
+    emptyLi.style.padding = '20px';
+    emptyLi.innerHTML = '<p style="font-size:13px;color:var(--muted)">No tasks in this quadrant</p>';
+    container.innerHTML = '';
+    container.appendChild(emptyLi);
     return; 
   }
   
+  // Use document fragment for efficient DOM manipulation
+  const fragment = document.createDocumentFragment();
+  
   arr.forEach((t, idx)=>{
-    const li = document.createElement('li'); 
-    li.className='task'; 
-    li.dataset.id=t.id;
-    li.setAttribute('role', 'listitem');
-    
-    const cb = document.createElement('input'); 
-    cb.type='checkbox'; 
-    cb.id = `task-${key}-${t.id}`;
-    cb.checked=t.completed; 
-    cb.setAttribute('aria-describedby', `task-title-${key}-${t.id}`);
-    cb.onchange = ()=>{ t.completed=!t.completed; t.updatedAt=Date.now(); saveLocal(); queueUpload(); render(); };
-    
-    const title = document.createElement('div'); 
-    title.className='title'; 
-    title.id = `task-title-${key}-${t.id}`;
-    title.textContent=t.title || ''; 
-    if(t.completed){ title.className+=' strike'; }
-    
-    const spacer = document.createElement('div'); spacer.className='spacer';
-    
-    const actions = document.createElement('div'); 
-    actions.className='row-actions';
-    actions.setAttribute('role', 'group');
-    actions.setAttribute('aria-label', `Actions for ${t.title}`);
-    
-    const up = document.createElement('button'); 
-    up.className='btn icon primary'; 
-    up.setAttribute('aria-label', `Move ${t.title} up in priority`);
-    up.title='Move up'; 
-    up.innerHTML='<span aria-hidden="true">↑</span>'; 
-    up.onclick=()=>moveWithinQuadrant(t.id,key,-1);
-    
-    const down = document.createElement('button'); 
-    down.className='btn icon primary'; 
-    down.setAttribute('aria-label', `Move ${t.title} down in priority`);
-    down.title='Move down'; 
-    down.innerHTML='<span aria-hidden="true">↓</span>'; 
-    down.onclick=()=>moveWithinQuadrant(t.id,key,+1);
-    
-    const decat = document.createElement('button'); 
-    decat.className='btn icon ghost'; 
-    decat.setAttribute('aria-label', `Remove ${t.title} from category`);
-    decat.title='De‑categorise'; 
-    decat.innerHTML='<span aria-hidden="true">↩</span>'; 
-    decat.onclick=()=>{ t.quadrant=null; t.rank=null; t.updatedAt=Date.now(); saveLocal(); queueUpload(); render(); };
-    
-    const del = document.createElement('button'); 
-    del.className='btn icon ghost closebtn'; 
-    del.setAttribute('aria-label', `Delete task: ${t.title}`);
-    del.title='Delete'; 
-    del.textContent='×'; 
-    del.onclick=()=> requestDelete(t, ()=>{ tasks = tasks.filter(x=>x.id!==t.id); saveLocal(); queueUpload(); __recordDelete(); render(); });
-    
-    actions.append(up,down,decat,del);
-    li.append(cb,title,spacer,actions);
-    container.appendChild(li);
+    const li = createQuadrantListItem(t, key);
+    fragment.appendChild(li);
   });
+  
+  container.innerHTML = '';
+  container.appendChild(fragment);
+}
+
+// Separate function for creating quadrant list items (better organization)
+function createQuadrantListItem(t, key) {
+  const li = document.createElement('li'); 
+  li.className='task'; 
+  li.dataset.id=t.id;
+  li.setAttribute('role', 'listitem');
+  
+  const cb = document.createElement('input'); 
+  cb.type='checkbox'; 
+  cb.id = `task-${key}-${t.id}`;
+  cb.checked=t.completed; 
+  cb.setAttribute('aria-describedby', `task-title-${key}-${t.id}`);
+  cb.onchange = ()=>{ 
+    t.completed=!t.completed; 
+    t.updatedAt=Date.now(); 
+    saveLocal(); 
+    queueUpload(); 
+    markForUpdate(['step2', 'step3']);
+    render(); 
+  };
+  
+  const title = document.createElement('div'); 
+  title.className='title'; 
+  title.id = `task-title-${key}-${t.id}`;
+  title.textContent=t.title || ''; 
+  if(t.completed){ title.className+=' strike'; }
+  
+  const spacer = document.createElement('div'); spacer.className='spacer';
+  
+  const actions = document.createElement('div'); 
+  actions.className='row-actions';
+  actions.setAttribute('role', 'group');
+  actions.setAttribute('aria-label', `Actions for ${t.title}`);
+  
+  const up = document.createElement('button'); 
+  up.className='btn icon primary'; 
+  up.setAttribute('aria-label', `Move ${t.title} up in priority`);
+  up.title='Move up'; 
+  up.innerHTML='<span aria-hidden="true">↑</span>'; 
+  up.onclick=()=>moveWithinQuadrant(t.id,key,-1);
+  
+  const down = document.createElement('button'); 
+  down.className='btn icon primary'; 
+  down.setAttribute('aria-label', `Move ${t.title} down in priority`);
+  down.title='Move down'; 
+  down.innerHTML='<span aria-hidden="true">↓</span>'; 
+  down.onclick=()=>moveWithinQuadrant(t.id,key,+1);
+  
+  const decat = document.createElement('button'); 
+  decat.className='btn icon ghost'; 
+  decat.setAttribute('aria-label', `Remove ${t.title} from category`);
+  decat.title='De‑categorise'; 
+  decat.innerHTML='<span aria-hidden="true">↩</span>'; 
+  decat.onclick=()=>{ 
+    t.quadrant=null; 
+    t.rank=null; 
+    t.updatedAt=Date.now(); 
+    saveLocal(); 
+    queueUpload(); 
+    markForUpdate(['step1', 'step2', 'step3']);
+    render(); 
+  };
+  
+  const del = document.createElement('button'); 
+  del.className='btn icon ghost closebtn'; 
+  del.setAttribute('aria-label', `Delete task: ${t.title}`);
+  del.title='Delete'; 
+  del.textContent='×'; 
+  del.onclick=()=> requestDelete(t, ()=>{ 
+    tasks = tasks.filter(x=>x.id!==t.id); 
+    saveLocal(); 
+    queueUpload(); 
+    __recordDelete(); 
+    markForUpdate(['step1', 'step2', 'step3']);
+    render(); 
+  });
+  
+  actions.append(up,down,decat,del);
+  li.append(cb,title,spacer,actions);
+  return li;
 }
 
 /* ========= Settings modal ========= */
@@ -678,6 +1063,39 @@ function showSuccess(message) {
   showNotification(message, 'success');
 }
 
+/* ========= Visual Feedback Helpers ========= */
+function addSuccessFlash(element) {
+  element.classList.add('success-flash');
+  setTimeout(() => {
+    element.classList.remove('success-flash');
+  }, 600);
+}
+
+function addLoadingState(element) {
+  element.classList.add('loading');
+}
+
+function removeLoadingState(element) {
+  element.classList.remove('loading');
+}
+
+// Enhanced form submission with loading state
+function submitWithFeedback(formElement, submitFunction) {
+  addLoadingState(formElement);
+  try {
+    const result = submitFunction();
+    if (result instanceof Promise) {
+      return result.finally(() => removeLoadingState(formElement));
+    } else {
+      removeLoadingState(formElement);
+      return result;
+    }
+  } catch (error) {
+    removeLoadingState(formElement);
+    throw error;
+  }
+}
+
 function showInfo(message) {
   showNotification(message, 'info');
 }
@@ -737,6 +1155,9 @@ window.addEventListener('unhandledrejection', (event) => {
 // Initialize
 try {
   initAccent();
+  // Initial render with all sections
+  markForUpdate(['step1', 'step2', 'step3']);
+  renderState.suggestions = true;
   render();
   showInfo('Welcome to Covey To-Do!');
 } catch(error) {
