@@ -1235,27 +1235,13 @@ function initializeFirebase() {
       // Set up auth state listener
       auth.onAuthStateChanged(user => {
         updateAuthUI(user);
-        if (user) {
-          el.envStatus.textContent = 'SDK: connected';
-          el.envStatus.classList.remove('ghost');
-          el.envStatus.classList.add('primary');
-        } else {
-          el.envStatus.textContent = 'SDK: ready';
-          el.envStatus.classList.remove('primary');
-          el.envStatus.classList.add('ghost');
-        }
       });
-      
-      el.envStatus.textContent = 'SDK: ready';
-      el.envStatus.classList.remove('ghost');
-      el.envStatus.classList.add('primary');
     } else {
       throw new Error('Firebase SDK not loaded');
     }
   } catch (error) {
     console.error('Firebase initialization error:', error);
-    el.envStatus.textContent = 'SDK: error';
-    showError('Firebase initialization failed');
+    // Firebase initialization failed - authentication features will be disabled
   }
 }
 
