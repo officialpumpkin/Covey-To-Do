@@ -982,20 +982,6 @@ function createQuadrantListItem(t, key) {
   li.dataset.id=t.id;
   li.setAttribute('role', 'listitem');
   
-  const cb = document.createElement('input'); 
-  cb.type='checkbox'; 
-  cb.id = `task-${key}-${t.id}`;
-  cb.checked=t.completed; 
-  cb.setAttribute('aria-describedby', `task-title-${key}-${t.id}`);
-  cb.onchange = ()=>{ 
-    t.completed=!t.completed; 
-    t.updatedAt=Date.now(); 
-    saveLocal(); 
-    queueUpload(); 
-    markForUpdate(['step2', 'step3']);
-    render(); 
-  };
-  
   const title = document.createElement('div'); 
   title.className='title'; 
   title.id = `task-title-${key}-${t.id}`;
@@ -1053,7 +1039,7 @@ function createQuadrantListItem(t, key) {
   });
   
   actions.append(up,down,decat,del);
-  li.append(cb,title,spacer,actions);
+  li.append(title,spacer,actions);
   return li;
 }
 
