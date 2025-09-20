@@ -290,25 +290,53 @@ textarea:focus-visible {
       <h2 style="margin:0;font-size:16px; text-align:center; flex:1">Settings</h2>
       <button id="closeSettings" class="btn pill ghost" aria-label="Close settings">✕</button>
     </div>
-    <div class="row" style="margin-top:8px; justify-content:center; gap:12px; display:flex; align-items:center">
-      <label class="row" style="gap:8px; display:flex; align-items:center"><input id="enableSync" type="checkbox"> Enable sync</label>
-      <div class="btn pill ghost" id="envStatus" style="min-height:36px;font-weight:700">SDK: not loaded</div>
+    
+    <!-- Font Selection -->
+    <div style="margin-top:16px">
+      <div class="sec-title">Font</div>
+      <select id="fontSelect" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:14px;margin-top:8px">
+        <option value="system-ui, -apple-system, 'Segoe UI', Roboto, Inter, Arial, sans-serif">System Default</option>
+        <option value="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">Inter</option>
+        <option value="'SF Pro Display', -apple-system, BlinkMacSystemFont, sans-serif">SF Pro Display</option>
+        <option value="'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif">Segoe UI</option>
+        <option value="Roboto, 'Helvetica Neue', Arial, sans-serif">Roboto</option>
+        <option value="'Helvetica Neue', Helvetica, Arial, sans-serif">Helvetica</option>
+        <option value="'JetBrains Mono', 'Fira Code', Consolas, monospace">Monospace</option>
+      </select>
     </div>
-    <div style="margin-top:10px">
-      <label class="muted" style="font-size:12px">Firebase web config (JSON). Preloaded; edit only if you need to override.</label>
-      <textarea id="firebaseConfig" rows="6" style="width:100%">{"apiKey":"AIzaSyA_30R8nbkxbfZFMlFk3ZrAVd64GnT5Bdc","authDomain":"covey-to-do-minimal.firebaseapp.com","projectId":"covey-to-do-minimal","storageBucket":"covey-to-do-minimal.firebasestorage.app","messagingSenderId":"347259300013","appId":"1:347259300013:web:5118af8df57c0f064f3e24","measurementId":"G-XTK3S2LK46"}</textarea>
-    </div>
-    <div class="row" style="gap:12px; margin-top:10px; display:flex">
-      <div style="flex:1">
-        <label class="muted" style="font-size:12px">Room code</label>
-        <input id="roomCode" type="text" placeholder="e.g., my-team" />
+
+    <!-- Task Preferences -->
+    <div style="margin-top:16px">
+      <div class="sec-title">Preferences</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+        <label class="row" style="gap:8px; display:flex; align-items:center">
+          <input id="confirmDeletes" type="checkbox" checked> 
+          Confirm task deletions
+        </label>
+        <label class="row" style="gap:8px; display:flex; align-items:center">
+          <input id="enableAnimations" type="checkbox" checked> 
+          Enable animations
+        </label>
+        <label class="row" style="gap:8px; display:flex; align-items:center">
+          <input id="autoFocusInput" type="checkbox" checked> 
+          Auto-focus task input
+        </label>
       </div>
-      <div style="flex:1">
-        <label class="muted" style="font-size:12px">Your name (optional)</label>
-        <input id="displayName" type="text" placeholder="e.g., Sam" />
+    </div>
+
+    <!-- Data Management -->
+    <div style="margin-top:16px">
+      <div class="sec-title">Data</div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <button id="exportData" class="btn pill ghost">Export tasks</button>
+        <button id="importData" class="btn pill ghost">Import tasks</button>
+        <input id="importFile" type="file" accept=".json" style="display:none">
       </div>
     </div>
+
     <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
+    
+    <!-- Accent Color -->
     <div>
       <div class="sec-title">Accent colour</div>
       <div class="swatches" id="accentSwatches" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px"></div>
@@ -317,9 +345,9 @@ textarea:focus-visible {
         <button id="accentApply" class="btn pill ghost">Apply custom</button>
       </div>
     </div>
-    <div class="btnrow" style="margin-top:12px">
-      <button id="saveSettings" class="btn pill primary">Save & connect</button>
-      <span id="connectStatus" class="btn pill ghost" style="min-width:auto;min-height:36px;font-weight:700">Idle</span>
+    
+    <div class="btnrow" style="margin-top:16px">
+      <button id="saveSettings" class="btn pill primary">Save</button>
     </div>
   </div>
 </div>
@@ -457,10 +485,10 @@ const el = {
   signInBtn: byId('signInBtn'), signInModal: byId('signInModal'), closeSignIn: byId('closeSignIn'),
   signInForm: byId('signInForm'), emailInput: byId('emailInput'), passwordInput: byId('passwordInput'),
   createAccountBtn: byId('createAccountBtn'), googleSignInBtn: byId('googleSignInBtn'), authStatus: byId('authStatus'), authStatusModal: byId('authStatusModal'),
-  firebaseConfig: byId('firebaseConfig'), roomCode: byId('roomCode'), displayName: byId('displayName'),
-  enableSync: byId('enableSync'), saveSettings: byId('saveSettings'),
-  syncStatus: byId('syncStatus'), connectStatus: byId('connectStatus'), envStatus: byId('envStatus'),
-  accentSwatches: byId('accentSwatches'), accentCustom: byId('accentCustom'), accentApply: byId('accentApply')
+  saveSettings: byId('saveSettings'),
+  accentSwatches: byId('accentSwatches'), accentCustom: byId('accentCustom'), accentApply: byId('accentApply'),
+  fontSelect: byId('fontSelect'), confirmDeletes: byId('confirmDeletes'), enableAnimations: byId('enableAnimations'),
+  autoFocusInput: byId('autoFocusInput'), exportData: byId('exportData'), importData: byId('importData'), importFile: byId('importFile')
 };
 document.getElementById('themeToggle').onclick = toggleTheme;
 
@@ -1049,6 +1077,86 @@ const modal = document.getElementById('settingsModal');
 byId('settingsBtn').onclick = ()=> openSettings();
 byId('closeSettings').onclick = ()=> closeSettings();
 
+// New settings functionality
+el.fontSelect.onchange = () => applyFont(el.fontSelect.value);
+el.exportData.onclick = () => exportTasks();
+el.importData.onclick = () => el.importFile.click();
+el.importFile.onchange = (e) => importTasks(e.target.files[0]);
+
+function applyFont(fontFamily) {
+  document.documentElement.style.setProperty('font-family', fontFamily);
+  // Save to localStorage
+  saveUserSettings();
+}
+
+function exportTasks() {
+  const data = {
+    tasks: tasks,
+    settings: JSON.parse(localStorage.getItem('covey_settings') || '{}'),
+    exported: new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `covey-todo-${new Date().toISOString().split('T')[0]}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showSuccess('Tasks exported successfully!');
+}
+
+function importTasks(file) {
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.tasks && Array.isArray(data.tasks)) {
+        if (confirm(`Import ${data.tasks.length} tasks? This will replace your current tasks.`)) {
+          tasks = data.tasks;
+          saveLocal();
+          queueUpload();
+          markForUpdate(['step1', 'step2', 'step3']);
+          renderState.suggestions = true;
+          render();
+          showSuccess(`Imported ${data.tasks.length} tasks successfully!`);
+        }
+      } else {
+        showError('Invalid file format. Please select a valid Covey ToDo export file.');
+      }
+    } catch (error) {
+      console.error('Import error:', error);
+      showError('Failed to import tasks. Please check the file format.');
+    }
+  };
+  reader.readAsText(file);
+  // Clear the input so same file can be selected again
+  el.importFile.value = '';
+}
+
+function saveUserSettings() {
+  const settings = {
+    fontFamily: el.fontSelect?.value || 'system-ui, -apple-system, \'Segoe UI\', Roboto, Inter, Arial, sans-serif',
+    confirmDeletes: el.confirmDeletes?.checked !== false,
+    enableAnimations: el.enableAnimations?.checked !== false,
+    autoFocusInput: el.autoFocusInput?.checked !== false
+  };
+  localStorage.setItem('covey_settings', JSON.stringify(settings));
+}
+
+function loadUserSettings() {
+  const settings = JSON.parse(localStorage.getItem('covey_settings') || '{}');
+  
+  // Apply font
+  if (settings.fontFamily) {
+    document.documentElement.style.setProperty('font-family', settings.fontFamily);
+  }
+  
+  // Apply other settings as needed
+  return settings;
+}
+
 /* ========= Authentication modal ========= */
 let currentUser = null;
 
@@ -1377,8 +1485,10 @@ function showInfo(message) {
 
 /* ========= Enhanced Confirmation Dialogs ========= */
 function requestDelete(task, callback) {
-  const confirmed = confirm(`Are you sure you want to delete "${task.title}"?\n\nThis action cannot be undone.`);
-  if (confirmed) {
+  const settings = JSON.parse(localStorage.getItem('covey_settings') || '{}');
+  const shouldConfirm = settings.confirmDeletes !== false;
+  
+  if (!shouldConfirm || confirm(`Are you sure you want to delete "${task.title}"?\n\nThis action cannot be undone.`)) {
     try {
       callback();
       showSuccess('Task deleted successfully');
@@ -1396,11 +1506,12 @@ function escapeHtml(text) {
   div.textContent = text; 
   return div.innerHTML; 
 }
-function requestDelete(task, callback) {
-  if (confirm(`Delete "${task.title}"?`)) {
-    callback();
-  }
-}
+// Save button handler
+el.saveSettings.onclick = ()=>{ 
+  saveUserSettings(); 
+  showSuccess('Settings saved successfully!'); 
+  closeSettings(); 
+};
 function queueUpload() {
   // Placeholder for sync functionality
 }
@@ -1409,11 +1520,17 @@ function __recordDelete() {
 }
 function loadSettingsIntoUI() {
   // Load settings into the UI when modal opens
-  const syncSettings = JSON.parse(localStorage.getItem(SYNC_KEY) || '{}');
-  if (el.firebaseConfig) el.firebaseConfig.value = syncSettings.firebaseConfig || '';
-  if (el.roomCode) el.roomCode.value = syncSettings.roomCode || '';
-  if (el.displayName) el.displayName.value = syncSettings.displayName || '';
-  if (el.enableSync) el.enableSync.checked = syncSettings.enabled || false;
+  const settings = JSON.parse(localStorage.getItem('covey_settings') || '{}');
+  
+  // Load font selection
+  if (el.fontSelect && settings.fontFamily) {
+    el.fontSelect.value = settings.fontFamily;
+  }
+  
+  // Load preferences
+  if (el.confirmDeletes) el.confirmDeletes.checked = settings.confirmDeletes !== false;
+  if (el.enableAnimations) el.enableAnimations.checked = settings.enableAnimations !== false;
+  if (el.autoFocusInput) el.autoFocusInput.checked = settings.autoFocusInput !== false;
 }
 
 // Global error handler
@@ -1430,6 +1547,8 @@ window.addEventListener('unhandledrejection', (event) => {
 // Initialize
 try {
   initAccent();
+  loadUserSettings(); // Load user preferences
+  
   // Initialize Firebase when ready
   if (typeof firebase !== 'undefined') {
     initializeFirebase();
