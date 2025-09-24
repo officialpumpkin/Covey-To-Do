@@ -59,6 +59,20 @@ input[type="text"],textarea{border:1px solid var(--border);border-radius:999px;p
 .chip{border:1px solid var(--border);background:var(--card);border-radius:999px;font-size:13px;padding:10px 14px;cursor:pointer;color:var(--text);transition:transform .08s ease,box-shadow .12s ease;font-family:inherit}
 .chip:hover{transform:translateY(-1px);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 
+/* Priority Rating Grid */
+.priority-rating-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:8px;max-width:800px;margin:0 auto 20px}
+.priority-rating-btn{min-height:44px;font-weight:700;font-size:16px;flex:1;min-width:0}
+
+/* Mobile responsive for priority rating */
+@media (max-width: 768px) {
+  .priority-rating-grid{grid-template-columns:repeat(5,1fr);max-width:400px}
+}
+
+@media (max-width: 480px) {
+  .priority-rating-grid{grid-template-columns:repeat(5,1fr);max-width:300px;gap:6px}
+  .priority-rating-btn{min-height:40px;font-size:14px}
+}
+
 /* Lists */
 .list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;text-align:left}
 .task{position:relative;display:flex;gap:10px;border:1px solid var(--border);border-radius:12px;background:var(--card);padding:12px;align-items:center;box-shadow:var(--shadow)}
@@ -711,10 +725,10 @@ function renderPriorityQuestion() {
       </div>
       <p style="color: var(--muted); font-size: 14px; margin: 16px 0 24px;">${subText}</p>
       
-      <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-width: 500px; margin: 0 auto 20px;">
+      <div class="priority-rating-grid">
         ${Array.from({length: 10}, (_, i) => {
           const rating = i + 1;
-          return `<button class="btn pill priority-rating-btn" data-rating="${rating}" onclick="setPriorityRating(${rating})" style="min-height: 44px; font-weight: 700; font-size: 16px;">${rating}</button>`;
+          return `<button class="btn pill priority-rating-btn" data-rating="${rating}" onclick="setPriorityRating(${rating})">${rating}</button>`;
         }).join('')}
       </div>
       
