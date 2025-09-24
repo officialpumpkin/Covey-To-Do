@@ -2,7 +2,7 @@
 
 ## Overview
 
-Covey To-Do is a sophisticated task management application built as a single-page web app implementing the Covey quadrant system (urgent/important matrix). The application features a comprehensive 4-step workflow: Add → Categorise → Prioritise → Current List. The project emphasizes a clean, modern interface with advanced prioritization capabilities including 1-10 scoring scales for urgency and importance, priority weighting calculations, and automatic task ranking. The design supports both light and dark themes with a mobile-responsive layout.
+Covey To-Do is a sophisticated task management application built as a single-page web app implementing the Covey quadrant system (urgent/important matrix). The application features a streamlined 3-step workflow: Add → Categorise → Prioritise & Manage. The project emphasizes a clean, modern interface with advanced prioritization capabilities including question-based priority rating, drag-and-drop recategorization, priority weighting calculations, and automatic task ranking. The design supports both light and dark themes with a mobile-responsive layout.
 
 ## User Preferences
 
@@ -22,18 +22,20 @@ Preferred communication style: Simple, everyday language.
 
 **State Management**: Uses client-side state management for task data and UI state with localStorage persistence. Each task includes urgency (1-10) and importance (1-10) scores for sophisticated priority calculation using urgency × importance weighting formula (1-100 scale).
 
-**Workflow Architecture**: 4-step progressive workflow:
+**Workflow Architecture**: 3-step progressive workflow:
 1. **Add**: Task creation with validation and duplicate detection
 2. **Categorise**: Eisenhower Matrix-based quadrant assignment (Q1-Q4)
-3. **Prioritise**: Advanced scoring with dual sliders for urgency and importance
-4. **Current List**: Priority-weighted task display with automatic ranking
+3. **Prioritise & Manage**: Combined priority scoring and task management with completion tracking
 
 **Priority System**: Implements sophisticated 1-10 priority scoring system with:
-- Urgency slider (1-10): How time-sensitive the task is
-- Importance slider (1-10): How critical the task is to goals
+- Question-based rating interface: Presents tasks one at a time with 10-button rating scale
+- Urgency assessment (1-10): How time-sensitive the task is
+- Importance assessment (1-10): How critical the task is to goals
 - Priority weighting: Calculated as urgency × importance (1-100 scale)
+- Quadrant-organized display: Tasks grouped by Q1-Q4 with matching background colors
+- Drag-and-drop recategorization: Users can move tasks between quadrants
+- Task completion tracking: Checkboxes with show/hide completed functionality
 - Automatic reordering: Tasks automatically reorder based on calculated priority scores
-- Real-time updates: Priority scores and rankings update instantly when sliders change
 
 ## External Dependencies
 
