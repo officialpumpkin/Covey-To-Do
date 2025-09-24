@@ -400,6 +400,7 @@ let el = {};
 
 // Initialize DOM references when page loads
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM Content Loaded - Starting initialization');
   el = { step1:byId('step1'), step2:byId('step2'), step3:byId('step3'), step4:byId('step4'),
     step1Btn:byId('step1Btn'), step2Btn:byId('step2Btn'), step3Btn:byId('step3Btn'), step4Btn:byId('step4Btn'),
     addForm:byId('addForm'), taskInput:byId('taskInput'), inboxList:byId('inboxList'),
@@ -426,8 +427,37 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize other event handlers that depend on DOM elements
   initializeEventHandlers();
   
+  console.log('Element references initialized, DOM elements found:', Object.keys(el).length);
+  
+  // Check for missing critical elements
+  const critical = ['step1', 'step2', 'step3', 'step4', 'prioritiseBox'];
+  const missing = critical.filter(key => !el[key]);
+  if (missing.length > 0) {
+    console.error('Missing critical DOM elements:', missing);
+  }
+  
+  // Initialize Firebase if available  
+  if(typeof firebase !== 'undefined'){ 
+    initializeFirebase(); 
+  } else { 
+    window.addEventListener('load', ()=>{ 
+      setTimeout(()=>{ 
+        if(typeof firebase!=='undefined'){ 
+          initializeFirebase(); 
+        } 
+      },100); 
+    }); 
+  }
+  
   // Initial render
+  console.log('Starting initial render');
+  markForUpdate(['step1','step2','step3','step4']);
+  renderState.suggestions=true;
   render();
+  console.log('Initialization complete');
+  
+  // Welcome message
+  showInfo('Welcome to Covey To-Do!');
 });
 
 /* ========= Keyboard Navigation ========= */
@@ -511,7 +541,17 @@ function moveWithinQuadrant(id,qKey,delta){ const q=tasks.filter(t=>t.quadrant==
 function normalizeRanks(qKey){ const q=tasks.filter(t=>t.quadrant===qKey).sort((a,b)=> (num(a.rank)-num(b.rank)) || (a.createdAt-b.createdAt)); q.forEach((t,i)=>{ t.rank=i; t.updatedAt=nowMs(); }); }
 
 /* ========= Render ========= */
-function render(forceUpdate={}){ const should={...renderState,...forceUpdate}; if(should.step1){ renderStep1(); renderState.step1=false; renderState.suggestions=false; } if(should.step2){ renderStep2(); renderState.step2=false; } if(should.step3){ renderStep3(); renderState.step3=false; } if(should.step4){ renderStep4(); renderState.step4=false; } if(should.suggestions && !should.step1){ renderSuggestions(); renderState.suggestions=false; } }
+function render(forceUpdate={}){ 
+  console.log('render() called with:', forceUpdate);
+  const should={...renderState,...forceUpdate}; 
+  console.log('render flags:', should);
+  
+  if(should.step1){ console.log('Rendering step1'); renderStep1(); renderState.step1=false; renderState.suggestions=false; } 
+  if(should.step2){ console.log('Rendering step2'); renderStep2(); renderState.step2=false; } 
+  if(should.step3){ console.log('Rendering step3'); renderStep3(); renderState.step3=false; } 
+  if(should.step4){ console.log('Rendering step4'); renderStep4(); renderState.step4=false; } 
+  if(should.suggestions && !should.step1){ console.log('Rendering suggestions'); renderSuggestions(); renderState.suggestions=false; } 
+}
 function renderStep1(){ const unc=inbox(false); updateList(el.inboxList, unc, {showQuadrant:false}, 'No tasks'); renderSuggestions(); }
 function renderStep2(){ const g=groups(true); const current=inbox(false)[0]; updateCategoriseBox(current); mountQuadrantList(el.listQ1,g.Q1,'Q1'); mountQuadrantList(el.listQ2,g.Q2,'Q2'); mountQuadrantList(el.listQ3,g.Q3,'Q3'); mountQuadrantList(el.listQ4,g.Q4,'Q4'); }
 function renderStep3(){ renderPrioritise(); }
@@ -534,9 +574,17 @@ function allSortedByPriority(includeCompleted) {
 }
 
 function renderPrioritise() {
+  console.log('renderPrioritise called');
   const categorized = tasks.filter(t => t.quadrant);
+  console.log('Categorized tasks found:', categorized.length);
+  
+  if (!el.prioritiseBox) {
+    console.error('prioritiseBox element not found!');
+    return;
+  }
   
   if (!categorized.length) {
+    console.log('No categorized tasks, showing empty state');
     el.prioritiseBox.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px">No categorized tasks to prioritise.<br>Go to step 2 to categorise your tasks first.</div>';
     return;
   }
@@ -743,17 +791,15 @@ function closeSettings(){ modal.style.display='none'; modal.setAttribute('aria-h
 window.addEventListener('error', (event)=>{ console.error('Global error:', event.error); const msg=event.error?.message || event.message || 'An unexpected error occurred'; if(msg.includes('Firebase')){ console.warn('Firebase not fully configured'); return; } showError(`Error: ${msg}`); });
 window.addEventListener('unhandledrejection', (event)=>{ console.error('Unhandled rejection:', event.reason); const msg=event.reason?.message || event.reason?.code || 'Operation failed'; if(typeof event.reason==='string' && event.reason.includes('Firebase')){ console.warn('Firebase not fully configured'); return; } showError(`Error: ${msg}`); });
 
-/* ========= Init ========= */
+/* ========= Early Init (theme/settings before DOM) ========= */
 try{
+  console.log('JavaScript is executing - early init starting');
   initAccent();
   loadUserSettings();
-  if(typeof firebase !== 'undefined'){ initializeFirebase(); }
-  else { window.addEventListener('load', ()=>{ setTimeout(()=>{ if(typeof firebase!=='undefined'){ initializeFirebase(); } },100); }); }
-  markForUpdate(['step1','step2','step3']);
-  renderState.suggestions=true;
-  render();
-  showInfo('Welcome to Covey To-Do!');
-} catch(e){ console.error('Initialization error:', e); if(!e.message?.includes('Firebase')){ showError(`Initialization error: ${e.message}`); } }
+  console.log('Early initialization completed successfully');
+} catch(e){ 
+  console.error('Early initialization error:', e);
+}
 </script>
 </body>
 </html>
