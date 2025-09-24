@@ -123,11 +123,14 @@ input[type="checkbox"]:checked::after{content:"";width:10px;height:6px;border:2p
   .quadrant-task{padding:12px}
   
   /* Better mobile header layout */
-  header{flex-direction:column;gap:8px;margin:8px 0 16px}
+  header{flex-direction:column;gap:8px;margin:8px 0 12px}
   header > div:first-child{flex:none;justify-content:center}
   header h1{order:1}
-  header .row{order:2;flex:none;justify-content:center!important;flex-wrap:wrap;gap:8px}
+  header .row{order:3;flex:none;justify-content:center!important;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
   #authStatus{font-size:12px;padding:6px 10px}
+  
+  /* Move auth controls below navigation */
+  #stepper{order:2;margin-bottom:16px}
 }
 
 /* Loading + notifications */
