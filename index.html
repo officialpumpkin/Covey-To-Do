@@ -491,6 +491,10 @@ function createQuadrantListItem(t,key){ const li=document.createElement('li'); l
 const modal=document.getElementById('settingsModal');
 byId('settingsBtn').onclick=()=> openSettings();
 byId('closeSettings').onclick=()=> closeSettings();
+
+// Font selection event handler
+el.fontSelect.onchange = () => applyFont(el.fontSelect.value);
+
 function applyFont(f){ document.documentElement.style.setProperty('--font-family', f); saveUserSettings(); }
 el.exportData.onclick=()=> exportTasks();
 el.importData.onclick=()=> el.importFile.click();
