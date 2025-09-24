@@ -177,8 +177,9 @@ input[type="checkbox"]:checked::after{content:"";width:10px;height:6px;border:2p
   <!-- Stepper -->
   <nav class="btnrow" id="stepper" role="tablist" aria-label="Todo app steps">
     <button id="step1Btn" class="btn pill primary" role="tab" aria-selected="true" aria-controls="step1" tabindex="0">1. Add</button>
-    <button id="step2Btn" class="btn pill ghost" role="tab" aria-selected="false" aria-controls="step2" tabindex="-1">2. Categorise & Prioritise</button>
-    <button id="step3Btn" class="btn pill ghost" role="tab" aria-selected="false" aria-controls="step3" tabindex="-1">3. Current list</button>
+    <button id="step2Btn" class="btn pill ghost" role="tab" aria-selected="false" aria-controls="step2" tabindex="-1">2. Categorise</button>
+    <button id="step3Btn" class="btn pill ghost" role="tab" aria-selected="false" aria-controls="step3" tabindex="-1">3. Prioritise</button>
+    <button id="step4Btn" class="btn pill ghost" role="tab" aria-selected="false" aria-controls="step4" tabindex="-1">4. Current list</button>
   </nav>
 
   <!-- Step 1: Add -->
@@ -195,9 +196,12 @@ input[type="checkbox"]:checked::after{content:"";width:10px;height:6px;border:2p
     </div>
   </section>
 
-  <!-- Step 2: Categorise + Prioritise (LIST layout) -->
+  <!-- Step 2: Categorise -->
   <section id="step2" class="view" role="tabpanel" aria-labelledby="step2Btn" aria-hidden="true">
-    <div class="card" id="categoriseBox" role="region" aria-label="Task categorization"></div>
+    <div class="card">
+      <div class="sec-title">Categorise Tasks</div>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 16px;text-align:center">Assign tasks to quadrants based on urgency and importance</p>
+    </div>
     <div class="quads" role="region" aria-label="Eisenhower Matrix - Task Quadrants">
       <div class="card">
         <h3 class="sec-title" id="q1-title">Q1 · Urgent + Important</h3>
@@ -218,8 +222,17 @@ input[type="checkbox"]:checked::after{content:"";width:10px;height:6px;border:2p
     </div>
   </section>
 
-  <!-- Step 3: Current list -->
+  <!-- Step 3: Prioritise -->
   <section id="step3" class="view" role="tabpanel" aria-labelledby="step3Btn" aria-hidden="true">
+    <div class="card">
+      <div class="sec-title">Prioritise Tasks</div>
+      <p style="color:var(--muted);font-size:14px;margin:0 0 16px;text-align:center">Rate each task's urgency and importance (1-10) to calculate priority weighting</p>
+      <div id="prioritiseBox"></div>
+    </div>
+  </section>
+
+  <!-- Step 4: Current list -->
+  <section id="step4" class="view" role="tabpanel" aria-labelledby="step4Btn" aria-hidden="true">
     <div class="card">
       <div class="btnrow" style="margin-bottom:8px">
         <label class="btn pill ghost" style="gap:8px; min-height:36px; min-width:auto">
@@ -367,7 +380,7 @@ let unsubscribe = null;
 let lastPushedAt = 0;
 
 // Performance render flags
-let renderState = { step1:true, step2:true, step3:true, suggestions:true };
+let renderState = { step1:true, step2:true, step3:true, step4:true, suggestions:true };
 
 function debounce(func, wait){ let timeout; return function(...args){ clearTimeout(timeout); timeout=setTimeout(()=>func.apply(this,args), wait); }; }
 
@@ -383,8 +396,8 @@ function groups(includeCompleted){ const g={Q1:[],Q2:[],Q3:[],Q4:[]}; tasks.forE
 function allSorted(includeCompleted){ const g=groups(includeCompleted); return [...g.Q1,...g.Q2,...g.Q3,...g.Q4]; }
 
 /* ========= DOM refs ========= */
-const el = { step1:byId('step1'), step2:byId('step2'), step3:byId('step3'),
-  step1Btn:byId('step1Btn'), step2Btn:byId('step2Btn'), step3Btn:byId('step3Btn'),
+const el = { step1:byId('step1'), step2:byId('step2'), step3:byId('step3'), step4:byId('step4'),
+  step1Btn:byId('step1Btn'), step2Btn:byId('step2Btn'), step3Btn:byId('step3Btn'), step4Btn:byId('step4Btn'),
   addForm:byId('addForm'), taskInput:byId('taskInput'), inboxList:byId('inboxList'),
   listQ1:byId('listQ1'), listQ2:byId('listQ2'), listQ3:byId('listQ3'), listQ4:byId('listQ4'),
   categoriseBox:byId('categoriseBox'), suggestions:byId('suggestions'),
@@ -426,11 +439,12 @@ el.accentApply.onclick=()=>{ applyAccent(el.accentCustom.value); buildSwatches()
 el.step1Btn.onclick=()=> setStep(1);
 el.step2Btn.onclick=()=> setStep(2);
 el.step3Btn.onclick=()=> setStep(3);
-function setStep(n){ if(step===n) return; step=n; const secs=[el.step1,el.step2,el.step3]; const btns=[el.step1Btn,el.step2Btn,el.step3Btn]; secs.forEach((sec,i)=>{ if(i===n-1){ sec.classList.add('active'); sec.setAttribute('aria-hidden','false'); } else { sec.classList.remove('active'); sec.setAttribute('aria-hidden','true'); } }); btns.forEach((b,i)=>{ if(i===n-1){ b.className='btn pill primary'; b.setAttribute('aria-selected','true'); b.setAttribute('tabindex','0'); } else { b.className='btn pill ghost'; b.setAttribute('aria-selected','false'); b.setAttribute('tabindex','-1'); } }); const update={}; update[`step${n}`]=true; render(update); }
+el.step4Btn.onclick=()=> setStep(4);
+function setStep(n){ if(step===n) return; step=n; const secs=[el.step1,el.step2,el.step3,el.step4]; const btns=[el.step1Btn,el.step2Btn,el.step3Btn,el.step4Btn]; secs.forEach((sec,i)=>{ if(i===n-1){ sec.classList.add('active'); sec.setAttribute('aria-hidden','false'); } else { sec.classList.remove('active'); sec.setAttribute('aria-hidden','true'); } }); btns.forEach((b,i)=>{ if(i===n-1){ b.className='btn pill primary'; b.setAttribute('aria-selected','true'); b.setAttribute('tabindex','0'); } else { b.className='btn pill ghost'; b.setAttribute('aria-selected','false'); b.setAttribute('tabindex','-1'); } }); const update={}; update[`step${n}`]=true; render(update); }
 
 /* ========= Add form ========= */
 el.addForm.onsubmit=(e)=>{ e.preventDefault(); const v=el.taskInput.value.trim(); if(!v){ showError('Please enter a task description'); el.taskInput.focus(); return; } if(v.length>200){ showError('Task description must be less than 200 characters'); el.taskInput.focus(); return; } if(tasks.some(t=> (t.title||'').toLowerCase()===v.toLowerCase())){ showError('A task with this description already exists'); el.taskInput.focus(); return; }
-  addLoadingState(el.addForm); try{ tasks.unshift({id:uid(), title:v, completed:false, quadrant:null, rank:null, createdAt:nowMs(), updatedAt:nowMs()}); el.taskInput.value=''; saveLocal(); queueUpload(); markForUpdate(['step1']); renderState.suggestions=true; render(); removeLoadingState(el.addForm); addSuccessFlash(el.inboxList); showSuccess('Task added successfully'); setTimeout(()=> el.taskInput.focus(),100); }catch(err){ removeLoadingState(el.addForm); console.error(err); showError('Failed to add task.'); }
+  addLoadingState(el.addForm); try{ tasks.unshift({id:uid(), title:v, completed:false, quadrant:null, rank:null, urgency:5, importance:5, createdAt:nowMs(), updatedAt:nowMs()}); el.taskInput.value=''; saveLocal(); queueUpload(); markForUpdate(['step1']); renderState.suggestions=true; render(); removeLoadingState(el.addForm); addSuccessFlash(el.inboxList); showSuccess('Task added successfully'); setTimeout(()=> el.taskInput.focus(),100); }catch(err){ removeLoadingState(el.addForm); console.error(err); showError('Failed to add task.'); }
 };
 const debouncedSuggestionUpdate = debounce(()=>{ if(step===1){ renderState.suggestions=true; render({suggestions:true}); } }, 300);
 el.taskInput.addEventListener('input', debouncedSuggestionUpdate);
