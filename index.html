@@ -498,7 +498,7 @@ byId('signInBtn').onclick=()=> openSignIn();
 byId('closeSignIn').onclick=()=> closeSignIn();
 function openSignIn(){ el.signInModal.style.display='flex'; el.signInModal.setAttribute('aria-hidden','false'); setTimeout(()=> el.emailInput.focus(),100); }
 function closeSignIn(){ el.signInModal.style.display='none'; el.signInModal.setAttribute('aria-hidden','true'); el.signInBtn.focus(); }
-function updateAuthUI(user){ currentUser=user; if(user){ el.authStatus.textContent=`Signed in as ${user.email || user.displayName || 'User'}`; el.signInBtn.textContent='Account'; el.signInBtn.onclick=()=> showAccountMenu(); } else { el.authStatus.textContent='Signed out'; el.signInBtn.textContent='Sign in'; el.signInBtn.onclick=()=> openSignIn(); } }
+function updateAuthUI(user){ currentUser=user; if(user){ el.authStatus.textContent='Signed in'; el.signInBtn.textContent='Account'; el.signInBtn.onclick=()=> showAccountMenu(); } else { el.authStatus.textContent='Signed out'; el.signInBtn.textContent='Sign in'; el.signInBtn.onclick=()=> openSignIn(); } }
 function showAccountMenu(){ if(confirm('Sign out of your account?')){ signOut(); } }
 
 // Firebase
