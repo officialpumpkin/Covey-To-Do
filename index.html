@@ -400,7 +400,7 @@ const el = { step1:byId('step1'), step2:byId('step2'), step3:byId('step3'), step
   step1Btn:byId('step1Btn'), step2Btn:byId('step2Btn'), step3Btn:byId('step3Btn'), step4Btn:byId('step4Btn'),
   addForm:byId('addForm'), taskInput:byId('taskInput'), inboxList:byId('inboxList'),
   listQ1:byId('listQ1'), listQ2:byId('listQ2'), listQ3:byId('listQ3'), listQ4:byId('listQ4'),
-  categoriseBox:byId('categoriseBox'), suggestions:byId('suggestions'),
+  categoriseBox:byId('categoriseBox'), prioritiseBox:byId('prioritiseBox'), suggestions:byId('suggestions'),
   showCompleted:byId('showCompleted'), clearBtn:byId('clearBtn'), currentList:byId('currentList'),
   settingsBtn:byId('settingsBtn'), settingsModal:byId('settingsModal'), closeSettings:byId('closeSettings'),
   signInBtn:byId('signInBtn'), signInModal:byId('signInModal'), closeSignIn:byId('closeSignIn'),
@@ -466,10 +466,110 @@ function moveWithinQuadrant(id,qKey,delta){ const q=tasks.filter(t=>t.quadrant==
 function normalizeRanks(qKey){ const q=tasks.filter(t=>t.quadrant===qKey).sort((a,b)=> (num(a.rank)-num(b.rank)) || (a.createdAt-b.createdAt)); q.forEach((t,i)=>{ t.rank=i; t.updatedAt=nowMs(); }); }
 
 /* ========= Render ========= */
-function render(forceUpdate={}){ const should={...renderState,...forceUpdate}; if(should.step1){ renderStep1(); renderState.step1=false; renderState.suggestions=false; } if(should.step2){ renderStep2(); renderState.step2=false; } if(should.step3){ renderStep3(); renderState.step3=false; } if(should.suggestions && !should.step1){ renderSuggestions(); renderState.suggestions=false; } }
+function render(forceUpdate={}){ const should={...renderState,...forceUpdate}; if(should.step1){ renderStep1(); renderState.step1=false; renderState.suggestions=false; } if(should.step2){ renderStep2(); renderState.step2=false; } if(should.step3){ renderStep3(); renderState.step3=false; } if(should.step4){ renderStep4(); renderState.step4=false; } if(should.suggestions && !should.step1){ renderSuggestions(); renderState.suggestions=false; } }
 function renderStep1(){ const unc=inbox(false); updateList(el.inboxList, unc, {showQuadrant:false}, 'No tasks'); renderSuggestions(); }
 function renderStep2(){ const g=groups(true); const current=inbox(false)[0]; updateCategoriseBox(current); mountQuadrantList(el.listQ1,g.Q1,'Q1'); mountQuadrantList(el.listQ2,g.Q2,'Q2'); mountQuadrantList(el.listQ3,g.Q3,'Q3'); mountQuadrantList(el.listQ4,g.Q4,'Q4'); }
-function renderStep3(){ const all=allSorted(showCompleted); updateList(el.currentList, all, {showQuadrant:true}, 'No tasks'); el.showCompleted.checked=showCompleted; }
+function renderStep3(){ renderPrioritise(); }
+function renderStep4(){ const all=allSortedByPriority(showCompleted); updateList(el.currentList, all, {showQuadrant:true}, 'No tasks'); el.showCompleted.checked=showCompleted; }
+
+// Priority calculation and sorting
+function calculatePriority(task) {
+  const urgency = task.urgency || 5;
+  const importance = task.importance || 5;
+  return urgency * importance; // Priority weight = urgency × importance (1-100)
+}
+
+function allSortedByPriority(includeCompleted) {
+  const categorized = tasks.filter(t => t.quadrant && (includeCompleted || !t.completed));
+  return categorized.sort((a, b) => {
+    const priorityA = calculatePriority(a);
+    const priorityB = calculatePriority(b);
+    return priorityB - priorityA; // Highest priority first
+  });
+}
+
+function renderPrioritise() {
+  const categorized = tasks.filter(t => t.quadrant);
+  
+  if (!categorized.length) {
+    el.prioritiseBox.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px">No categorized tasks to prioritise.<br>Go to step 2 to categorise your tasks first.</div>';
+    return;
+  }
+
+  const sortedTasks = categorized.sort((a, b) => calculatePriority(b) - calculatePriority(a));
+  
+  el.prioritiseBox.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  
+  sortedTasks.forEach((task, index) => {
+    const priority = calculatePriority(task);
+    const div = document.createElement('div');
+    div.className = 'task';
+    div.style.cssText = 'border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px;background:var(--card)';
+    
+    div.innerHTML = `
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">
+        <div style="flex:1">
+          <div class="title" style="margin-bottom:4px">${escapeHtml(task.title)}</div>
+          <div style="font-size:12px;color:var(--muted)">Q${task.quadrant[1]} • Priority Score: ${priority}</div>
+        </div>
+        <div style="font-weight:600;font-size:18px;color:var(--accent)">#${index + 1}</div>
+      </div>
+      
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">
+            Urgency: <span id="urgency-value-${task.id}">${task.urgency || 5}</span>/10
+          </label>
+          <input type="range" min="1" max="10" value="${task.urgency || 5}" 
+                 id="urgency-${task.id}" 
+                 style="width:100%;accent-color:var(--accent)"
+                 onchange="updateTaskScore('${task.id}', 'urgency', this.value)">
+        </div>
+        
+        <div>
+          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">
+            Importance: <span id="importance-value-${task.id}">${task.importance || 5}</span>/10
+          </label>
+          <input type="range" min="1" max="10" value="${task.importance || 5}" 
+                 id="importance-${task.id}" 
+                 style="width:100%;accent-color:var(--accent)"
+                 onchange="updateTaskScore('${task.id}', 'importance', this.value)">
+        </div>
+      </div>
+    `;
+    
+    frag.appendChild(div);
+  });
+  
+  el.prioritiseBox.appendChild(frag);
+}
+
+function updateTaskScore(taskId, type, value) {
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
+  
+  const numValue = parseInt(value);
+  task[type] = numValue;
+  task.updatedAt = nowMs();
+  
+  // Update the display value
+  const valueSpan = document.getElementById(`${type}-value-${taskId}`);
+  if (valueSpan) valueSpan.textContent = numValue;
+  
+  // Update priority score display
+  const priority = calculatePriority(task);
+  const priorityDisplay = task.parentElement?.querySelector('[style*="Priority Score"]');
+  if (priorityDisplay) priorityDisplay.textContent = `Q${task.quadrant[1]} • Priority Score: ${priority}`;
+  
+  // Save and re-render to update order
+  saveLocal();
+  queueUpload();
+  setTimeout(() => {
+    markForUpdate(['step3', 'step4']);
+    render();
+  }, 100);
+}
 function renderSuggestions(){ const sugg=computeSuggestions(); el.suggestions.innerHTML=''; const frag=document.createDocumentFragment(); sugg.forEach(s=>{ const b=document.createElement('button'); b.className='chip'; b.type='button'; b.textContent=s; b.onclick=()=>applySuggestion(s); frag.appendChild(b); }); el.suggestions.appendChild(frag); }
 function updateList(container, items, opts, emptyMsg){ if(!items.length){ const li=document.createElement('li'); li.className='empty-state'; li.setAttribute('role','listitem'); li.setAttribute('aria-live','polite'); li.innerHTML=`<p>${escapeHtml(emptyMsg)}</p>`; container.innerHTML=''; container.appendChild(li); return; } const frag=document.createDocumentFragment(); items.forEach(item=> frag.appendChild(rowItem(item,opts))); container.innerHTML=''; container.appendChild(frag); }
 function updateCategoriseBox(current){ if(!current){ el.categoriseBox.innerHTML='<div class="muted" style="text-align:center" role="status">No uncategorised tasks.</div>'; }
