@@ -2,7 +2,7 @@
 
 ## Overview
 
-Covey To-Do is a minimal task management application built as a single-page web app. The application appears to be focused on providing a clean, modern interface for managing tasks with features like categorization and prioritization. The project emphasizes simplicity with a compact list layout design and includes both light and dark theme support. Version 36.2 represents a refined iteration that restores original UI elements while maintaining clean code architecture and sync capabilities.
+Covey To-Do is a sophisticated task management application built as a single-page web app implementing the Covey quadrant system (urgent/important matrix). The application features a comprehensive 4-step workflow: Add → Categorise → Prioritise → Current List. The project emphasizes a clean, modern interface with advanced prioritization capabilities including 1-10 scoring scales for urgency and importance, priority weighting calculations, and automatic task ranking. The design supports both light and dark themes with a mobile-responsive layout.
 
 ## User Preferences
 
@@ -20,7 +20,20 @@ Preferred communication style: Simple, everyday language.
 
 **Theme Management**: Dynamic theming system using CSS custom properties and data attributes, allowing seamless switching between light and dark modes with consistent accent colors maintained across themes.
 
-**State Management**: Appears to use client-side state management for task data and UI state, with sync capabilities mentioned in the version notes suggesting some form of data persistence or synchronization feature.
+**State Management**: Uses client-side state management for task data and UI state with localStorage persistence. Each task includes urgency (1-10) and importance (1-10) scores for sophisticated priority calculation using urgency × importance weighting formula (1-100 scale).
+
+**Workflow Architecture**: 4-step progressive workflow:
+1. **Add**: Task creation with validation and duplicate detection
+2. **Categorise**: Eisenhower Matrix-based quadrant assignment (Q1-Q4)
+3. **Prioritise**: Advanced scoring with dual sliders for urgency and importance
+4. **Current List**: Priority-weighted task display with automatic ranking
+
+**Priority System**: Implements sophisticated 1-10 priority scoring system with:
+- Urgency slider (1-10): How time-sensitive the task is
+- Importance slider (1-10): How critical the task is to goals
+- Priority weighting: Calculated as urgency × importance (1-100 scale)
+- Automatic reordering: Tasks automatically reorder based on calculated priority scores
+- Real-time updates: Priority scores and rankings update instantly when sliders change
 
 ## External Dependencies
 
