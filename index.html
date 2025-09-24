@@ -3,15 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Covey To‑Do · Minimal + Sync (Accent) · v36.2</title>
+<title>Covey To‑Do · Minimal + Sync (Accent) · v43</title>
 <meta name="theme-color" content="#2563eb" id="themeColorMeta">
 <style>
 /*
-  Covey To‑Do v36.2
-  - Restores original Add screen look (pill input, bold blue Add button, rounded chips)
-  - Dark mode keeps colored primary buttons
-  - Step 2 uses compact LIST layout (not tall cards) for Categorise & Prioritise
-  - Retains cleaned codebase & sync from v36-clean
+  Covey To‑Do v43
+  - Adds Firestore real-time sync (per‑user doc: users/{uid}/lists/default)
+  - Fixes Firebase storageBucket domain (.appspot.com)
+  - Keeps v36.2 UI: pill input, blue Add button, list layout in Step 2
 */
 
 :root{
@@ -26,7 +25,7 @@
   --pill-bg:#1b1e24; --pill-text:#cbd5e1; --shadow:0 1px 2px rgba(0,0,0,.6), 0 6px 18px rgba(0,0,0,.45);
 }
 *{box-sizing:border-box}
-body{margin:0;font-family:var(--font-family, system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif);background:var(--bg);color:var(--text)}
+body{margin:0;font-family:var(--font-family, Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif);background:var(--bg);color:var(--text)}
 .container{max-width:980px;margin:0 auto;padding:16px;text-align:center}
 header{margin:6px 0 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
 h1{font-size:20px;margin:0}
@@ -39,7 +38,7 @@ h1{font-size:20px;margin:0}
 .btn:hover{box-shadow:0 2px 6px rgba(0,0,0,.08);transform:translateY(-1px)}
 .btn:active{transform:translateY(1px)}
 .btn.primary{background:var(--accent)!important;color:#fff!important;border-color:var(--accent)!important}
-.btn.ghost{background:var(--card);}
+.btn.ghost{background:var(--card);} 
 .btn.pill{border-radius:999px}
 .btn.sm{min-height:36px;padding:0 12px;font-weight:700;border-radius:10px}
 .toggle{border-radius:999px;min-width:46px;min-height:46px;padding:0}
@@ -48,7 +47,7 @@ h1{font-size:20px;margin:0}
 .btnrow{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;max-width:var(--card-max);margin:10px auto}
 .btnrow>.btn{flex:1 1 0;max-width:240px}
 
-/* Input row (match screenshot: rounded input + bold blue Add) */
+/* Input row */
 #addForm{display:grid;grid-template-columns:1fr auto;gap:12px}
 input[type="text"],textarea{border:1px solid var(--border);border-radius:999px;padding:12px 16px;width:100%;background:var(--card);color:var(--text);font-family:inherit}
 
@@ -91,12 +90,12 @@ input[type="text"],textarea{border:1px solid var(--border);border-radius:999px;p
 .task.q-Q4{border-left:4px solid var(--q4);background:rgba(99,102,241,.08)}
 .qpill{font-size:11px;border:1px solid var(--border);padding:3px 7px;border-radius:999px;background:var(--pill-bg);color:var(--pill-text);margin-left:8px;line-height:1}
 
-/* Step 2 LIST layout controls (right-aligned mini buttons) */
+/* Step 2 LIST layout controls */
 .row-actions{display:flex;gap:8px;align-items:center}
 .btn.icon{min-width:36px;min-height:36px;padding:0 0;border-radius:10px}
 .btn.icon span{font-size:16px;line-height:1}
 
-/* List-style task layout for categorize & prioritize */
+/* List-style item for categorize & prioritize */
 .quadrant-task{padding:16px;border:none;border-radius:8px;background:transparent;margin-bottom:8px;border-bottom:1px solid rgba(0,0,0,.06);width:100%;max-width:100%;box-sizing:border-box;display:block}
 .quadrant-task:last-child{border-bottom:none}
 .quadrant-task .title{font-weight:500;font-size:15px;margin-bottom:8px;width:100%}
@@ -111,7 +110,7 @@ input[type="checkbox"]:focus{outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.3
 input[type="checkbox"]:checked{background:var(--accent);border-color:var(--accent)}
 input[type="checkbox"]:checked::after{content:"";width:10px;height:6px;border:2px solid #fff;border-top:0;border-left:0;transform:translateY(-1px) rotate(45deg)}
 
-/* Enhanced Responsive Design */
+/* Responsive */
 @media (max-width:560px){
   .btnrow>.btn{max-width:100%}
   .container{padding:12px}
@@ -124,92 +123,20 @@ input[type="checkbox"]:checked::after{content:"";width:10px;height:6px;border:2p
   .quadrant-task{padding:12px}
 }
 
-/* Loading states */
-.loading {
-  opacity: 0.6;
-  pointer-events: none;
-  position: relative;
-}
-
-.loading::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 20px;
-  height: 20px;
-  margin: -10px 0 0 -10px;
-  border: 2px solid var(--muted);
-  border-top: 2px solid var(--accent);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Better hover states */
-.chip:hover,
-.task:hover {
-  border-color: var(--accent);
-  box-shadow: 0 2px 8px rgba(37,99,235,0.15);
-}
-
-/* Focus styles */
-.btn:focus-visible,
-input:focus-visible,
-textarea:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* Improved animations */
-.task {
-  transition: all 0.2s ease;
-}
-
-.task:hover {
-  transform: translateY(-1px);
-}
-
-.view {
-  transition: opacity .3s ease, transform .3s ease, max-height .4s ease;
-}
-
-/* Success states */
-.success-flash {
-  animation: successFlash 0.6s ease;
-}
-
-@keyframes successFlash {
-  0% { background-color: var(--card); }
-  50% { background-color: rgba(16,185,129,0.1); }
-  100% { background-color: var(--card); }
-}
-
-/* Empty state styling */
-.empty-state {
-  text-align: center;
-  padding: 40px 20px;
-  color: var(--muted);
-}
-
-.empty-state::before {
-  content: '📝';
-  font-size: 48px;
-  display: block;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-/* Better card spacing on larger screens */
-@media (min-width: 1200px) {
-  .container { max-width: 1100px; }
-  .card { padding: 20px; }
-  .quads { gap: 16px; }
-}
+/* Loading + notifications */
+.loading {opacity:.6;pointer-events:none;position:relative}
+.loading::after{content:'';position:absolute;top:50%;left:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border:2px solid var(--muted);border-top:2px solid var(--accent);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+.chip:hover,.task:hover{border-color:var(--accent);box-shadow:0 2px 8px rgba(37,99,235,.15)}
+.btn:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.task{transition:all .2s ease}
+.task:hover{transform:translateY(-1px)}
+.view{transition:opacity .3s ease, transform .3s ease, max-height .4s ease}
+.success-flash{animation:successFlash .6s ease}
+@keyframes successFlash{0%{background:var(--card)}50%{background:rgba(16,185,129,.1)}100%{background:var(--card)}}
+.empty-state{text-align:center;padding:40px 20px;color:var(--muted)}
+.empty-state::before{content:'📝';font-size:48px;display:block;margin-bottom:16px;opacity:.5}
+@media (min-width:1200px){.container{max-width:1100px}.card{padding:20px}.quads{gap:16px}}
 </style>
 </head>
 <body>
@@ -242,7 +169,6 @@ textarea:focus-visible {
       </form>
       <div id="suggestions" class="chips" role="group" aria-label="Task suggestions"></div>
     </div>
-
     <div class="card">
       <ul id="inboxList" class="list" role="list" aria-label="Uncategorized tasks"></ul>
     </div>
@@ -292,8 +218,7 @@ textarea:focus-visible {
       <h2 style="margin:0;font-size:16px; text-align:center; flex:1">Settings</h2>
       <button id="closeSettings" class="btn pill ghost" aria-label="Close settings">✕</button>
     </div>
-    
-    <!-- Font Selection -->
+
     <div style="margin-top:16px">
       <div class="sec-title">Font</div>
       <select id="fontSelect" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:14px;margin-top:8px">
@@ -307,7 +232,6 @@ textarea:focus-visible {
       </select>
     </div>
 
-    <!-- Task Preferences -->
     <div style="margin-top:16px">
       <div class="sec-title">Preferences</div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
@@ -326,7 +250,6 @@ textarea:focus-visible {
       </div>
     </div>
 
-    <!-- Data Management -->
     <div style="margin-top:16px">
       <div class="sec-title">Data</div>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
@@ -337,8 +260,7 @@ textarea:focus-visible {
     </div>
 
     <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
-    
-    <!-- Accent Color -->
+
     <div>
       <div class="sec-title">Accent colour</div>
       <div class="swatches" id="accentSwatches" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px"></div>
@@ -347,7 +269,7 @@ textarea:focus-visible {
         <button id="accentApply" class="btn pill ghost">Apply custom</button>
       </div>
     </div>
-    
+
     <div class="btnrow" style="margin-top:16px">
       <button id="saveSettings" class="btn pill primary">Save</button>
     </div>
@@ -361,7 +283,7 @@ textarea:focus-visible {
       <h2 style="margin:0;font-size:18px;font-weight:600;color:#f1f5f9">Sign in</h2>
       <button id="closeSignIn" class="btn pill ghost" aria-label="Close sign in" style="background:transparent;border:1px solid #475569;color:#94a3b8">✕</button>
     </div>
-    
+
     <form id="signInForm" style="display:flex;flex-direction:column;gap:16px">
       <div>
         <input id="emailInput" type="email" placeholder="Email" aria-label="Email address" required style="width:100%;padding:12px 16px;border:1px solid #475569;border-radius:8px;background:#334155;color:#f1f5f9;font-size:14px" />
@@ -369,12 +291,12 @@ textarea:focus-visible {
       <div>
         <input id="passwordInput" type="password" placeholder="Password" aria-label="Password" required style="width:100%;padding:12px 16px;border:1px solid #475569;border-radius:8px;background:#334155;color:#f1f5f9;font-size:14px" />
       </div>
-      
+
       <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap">
         <button type="submit" class="btn pill primary" style="flex:1;min-width:100px">Sign in</button>
         <button type="button" id="createAccountBtn" class="btn pill ghost" style="flex:1;min-width:100px;background:#374151;border:1px solid #4b5563;color:#f3f4f6">Create account</button>
       </div>
-      
+
       <button type="button" id="googleSignInBtn" class="btn pill ghost" style="width:100%;background:#374151;border:1px solid #4b5563;color:#f3f4f6;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px">
         <svg width="18" height="18" viewBox="0 0 24 24" style="fill:currentColor">
           <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -385,10 +307,8 @@ textarea:focus-visible {
         Continue with Google
       </button>
     </form>
-    
-    <div id="authStatusModal" style="margin-top:16px;text-align:center;font-size:12px;color:#94a3b8">
-      Idle
-    </div>
+
+    <div id="authStatusModal" style="margin-top:16px;text-align:center;font-size:12px;color:#94a3b8">Idle</div>
   </div>
 </div>
 
@@ -420,1207 +340,246 @@ let step = 1;
 let answeredUrgent = null;
 let showCompleted = false;
 
-// Performance optimization: track what needs re-rendering
-let renderState = {
-  step1: true,
-  step2: true, 
-  step3: true,
-  suggestions: true
-};
+// Sync helpers
+let db = null;
+let unsubscribe = null;
+let lastPushedAt = 0;
 
-// Debounce helper for input handling
-function debounce(func, wait) {
-  let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
-    clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
-  };
-}
+// Performance render flags
+let renderState = { step1:true, step2:true, step3:true, suggestions:true };
 
-function loadLocal(){ 
-  try{ 
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (!data) return [];
-    const parsed = JSON.parse(data);
-    if (!Array.isArray(parsed)) {
-      console.warn('Invalid data format in localStorage, resetting to empty array');
-      return [];
-    }
-    return parsed;
-  } catch(e){ 
-    console.error('Failed to load from localStorage:', e);
-    showError('Failed to load saved tasks. Starting with empty list.');
-    return []; 
-  } 
-}
-function saveLocal(){ 
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); 
-  } catch(error) {
-    console.error('Failed to save to localStorage:', error);
-    showError('Failed to save data. Your changes may not be preserved.');
-  }
-}
+function debounce(func, wait){ let timeout; return function(...args){ clearTimeout(timeout); timeout=setTimeout(()=>func.apply(this,args), wait); }; }
+
+function loadLocal(){ try{ const data = localStorage.getItem(STORAGE_KEY); if(!data) return []; const parsed = JSON.parse(data); return Array.isArray(parsed)? parsed : []; }catch(e){ console.error('Failed to load from localStorage:', e); return []; } }
+function saveLocal(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }catch(e){ console.error('Failed to save to localStorage:', e); }}
 function uid(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
 function nowMs(){ return Date.now(); }
 function num(v){ return (v===undefined||v===null)? Number.POSITIVE_INFINITY : Number(v); }
 
 /* ========= Derived helpers ========= */
 function inbox(includeCompleted){ return tasks.filter(t=>!t.quadrant && (includeCompleted || !t.completed)); }
-function groups(includeCompleted){ const g = {Q1:[],Q2:[],Q3:[],Q4:[]}; tasks.forEach(t=>{ if(t.quadrant && (includeCompleted || !t.completed)) g[t.quadrant].push(t); }); for(const q of ['Q1','Q2','Q3','Q4']) g[q].sort((a,b)=> (num(a.rank)-num(b.rank)) || (a.createdAt-b.createdAt)); return g; }
-function allSorted(includeCompleted){ const g = groups(includeCompleted); return [...g.Q1, ...g.Q2, ...g.Q3, ...g.Q4]; }
+function groups(includeCompleted){ const g={Q1:[],Q2:[],Q3:[],Q4:[]}; tasks.forEach(t=>{ if(t.quadrant && (includeCompleted || !t.completed)) g[t.quadrant].push(t); }); for(const q of ['Q1','Q2','Q3','Q4']) g[q].sort((a,b)=> (num(a.rank)-num(b.rank)) || (a.createdAt-b.createdAt)); return g; }
+function allSorted(includeCompleted){ const g=groups(includeCompleted); return [...g.Q1,...g.Q2,...g.Q3,...g.Q4]; }
 
 /* ========= DOM refs ========= */
-const el = {
-  step1: byId('step1'), step2: byId('step2'), step3: byId('step3'),
-  step1Btn: byId('step1Btn'), step2Btn: byId('step2Btn'), step3Btn: byId('step3Btn'),
-  addForm: byId('addForm'), taskInput: byId('taskInput'),
-  inboxList: byId('inboxList'),
-  listQ1: byId('listQ1'), listQ2: byId('listQ2'), listQ3: byId('listQ3'), listQ4: byId('listQ4'),
-  categoriseBox: byId('categoriseBox'), suggestions: byId('suggestions'),
-  showCompleted: byId('showCompleted'), clearBtn: byId('clearBtn'), currentList: byId('currentList'),
-  settingsBtn: byId('settingsBtn'), settingsModal: byId('settingsModal'), closeSettings: byId('closeSettings'),
-  signInBtn: byId('signInBtn'), signInModal: byId('signInModal'), closeSignIn: byId('closeSignIn'),
-  signInForm: byId('signInForm'), emailInput: byId('emailInput'), passwordInput: byId('passwordInput'),
-  createAccountBtn: byId('createAccountBtn'), googleSignInBtn: byId('googleSignInBtn'), authStatus: byId('authStatus'), authStatusModal: byId('authStatusModal'),
-  saveSettings: byId('saveSettings'),
-  accentSwatches: byId('accentSwatches'), accentCustom: byId('accentCustom'), accentApply: byId('accentApply'),
-  fontSelect: byId('fontSelect'), confirmDeletes: byId('confirmDeletes'), enableAnimations: byId('enableAnimations'),
-  autoFocusInput: byId('autoFocusInput'), exportData: byId('exportData'), importData: byId('importData'), importFile: byId('importFile')
-};
-document.getElementById('themeToggle').onclick = toggleTheme;
+const el = { step1:byId('step1'), step2:byId('step2'), step3:byId('step3'),
+  step1Btn:byId('step1Btn'), step2Btn:byId('step2Btn'), step3Btn:byId('step3Btn'),
+  addForm:byId('addForm'), taskInput:byId('taskInput'), inboxList:byId('inboxList'),
+  listQ1:byId('listQ1'), listQ2:byId('listQ2'), listQ3:byId('listQ3'), listQ4:byId('listQ4'),
+  categoriseBox:byId('categoriseBox'), suggestions:byId('suggestions'),
+  showCompleted:byId('showCompleted'), clearBtn:byId('clearBtn'), currentList:byId('currentList'),
+  settingsBtn:byId('settingsBtn'), settingsModal:byId('settingsModal'), closeSettings:byId('closeSettings'),
+  signInBtn:byId('signInBtn'), signInModal:byId('signInModal'), closeSignIn:byId('closeSignIn'),
+  signInForm:byId('signInForm'), emailInput:byId('emailInput'), passwordInput:byId('passwordInput'),
+  createAccountBtn:byId('createAccountBtn'), googleSignInBtn:byId('googleSignInBtn'), authStatus:byId('authStatus'), authStatusModal:byId('authStatusModal'),
+  saveSettings:byId('saveSettings'), accentSwatches:byId('accentSwatches'), accentCustom:byId('accentCustom'), accentApply:byId('accentApply'),
+  fontSelect:byId('fontSelect'), confirmDeletes:byId('confirmDeletes'), enableAnimations:byId('enableAnimations'), autoFocusInput:byId('autoFocusInput'),
+  exportData:byId('exportData'), importData:byId('importData'), importFile:byId('importFile') };
+byId('themeToggle').onclick = toggleTheme;
 
 /* ========= Keyboard Navigation ========= */
-// Tab navigation for stepper
-document.addEventListener('keydown', (e) => {
-  if (e.target.closest('#stepper')) {
-    const buttons = [el.step1Btn, el.step2Btn, el.step3Btn];
-    const currentIndex = buttons.findIndex(btn => btn === e.target);
-    
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+document.addEventListener('keydown', (e)=>{
+  if(e.target.closest('#stepper')){
+    const buttons=[el.step1Btn,el.step2Btn,el.step3Btn];
+    const idx=buttons.findIndex(btn=>btn===e.target);
+    if(e.key==='ArrowLeft' || e.key==='ArrowRight'){
       e.preventDefault();
-      const direction = e.key === 'ArrowLeft' ? -1 : 1;
-      const newIndex = (currentIndex + direction + buttons.length) % buttons.length;
-      buttons[newIndex].focus();
-      setStep(newIndex + 1);
-    } else if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      setStep(currentIndex + 1);
-    }
+      const dir=e.key==='ArrowLeft'? -1 : 1;
+      const ni=(idx+dir+buttons.length)%buttons.length;
+      buttons[ni].focus(); setStep(ni+1);
+    } else if(e.key==='Enter' || e.key===' '){ e.preventDefault(); setStep(idx+1); }
   }
-  
-  // ESC to close modal
-  if (e.key === 'Escape' && el.settingsModal.style.display === 'flex') {
-    closeSettings();
-  }
-  
-  // Focus management for modals
-  if (el.settingsModal.style.display === 'flex' && e.key === 'Tab') {
-    trapFocus(e, el.settingsModal);
-  }
-  if (el.signInModal.style.display === 'flex' && e.key === 'Tab') {
-    trapFocus(e, el.signInModal);
-  }
-  
-  // ESC to close sign-in modal
-  if (e.key === 'Escape' && el.signInModal.style.display === 'flex') {
-    closeSignIn();
-  }
+  if(e.key==='Escape' && el.settingsModal.style.display==='flex'){ closeSettings(); }
+  if(el.settingsModal.style.display==='flex' && e.key==='Tab'){ trapFocus(e, el.settingsModal); }
+  if(el.signInModal.style.display==='flex' && e.key==='Tab'){ trapFocus(e, el.signInModal); }
+  if(e.key==='Escape' && el.signInModal.style.display==='flex'){ closeSignIn(); }
 });
-
-function trapFocus(e, container) {
-  const focusableElements = container.querySelectorAll(
-    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-  );
-  const firstElement = focusableElements[0];
-  const lastElement = focusableElements[focusableElements.length - 1];
-  
-  if (e.shiftKey) {
-    if (document.activeElement === firstElement) {
-      lastElement.focus();
-      e.preventDefault();
-    }
-  } else {
-    if (document.activeElement === lastElement) {
-      firstElement.focus();
-      e.preventDefault();
-    }
-  }
-}
+function trapFocus(e, container){ const f=container.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])'); const first=f[0], last=f[f.length-1]; if(e.shiftKey){ if(document.activeElement===first){ last.focus(); e.preventDefault(); } } else { if(document.activeElement===last){ first.focus(); e.preventDefault(); } } }
 
 /* ========= Accent UI ========= */
-const PRESET_ACCENTS = ["#2563eb","#7c3aed","#db2777","#ef4444","#059669","#0ea5e9","#f59e0b","#111827"];
-function buildSwatches(){ el.accentSwatches.innerHTML = ""; const current = localStorage.getItem(ACCENT_KEY) || getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(); PRESET_ACCENTS.forEach(hex=>{ const b = document.createElement('button'); b.className = 'chip'; b.style.borderRadius='999px'; b.style.background=hex; b.style.color='#fff'; b.style.border='1px solid var(--border)'; b.style.minWidth='36px'; b.style.height='28px'; b.title=hex; b.type='button'; b.onclick = ()=>{ applyAccent(hex); buildSwatches(); }; el.accentSwatches.appendChild(b); }); }
-el.accentApply.onclick = ()=>{ applyAccent(el.accentCustom.value); buildSwatches(); };
+const PRESET_ACCENTS=["#2563eb","#7c3aed","#db2777","#ef4444","#059669","#0ea5e9","#f59e0b","#111827"];
+function buildSwatches(){ el.accentSwatches.innerHTML=''; PRESET_ACCENTS.forEach(hex=>{ const b=document.createElement('button'); b.className='chip'; b.style.borderRadius='999px'; b.style.background=hex; b.style.color='#fff'; b.style.border='1px solid var(--border)'; b.style.minWidth='36px'; b.style.height='28px'; b.title=hex; b.type='button'; b.onclick=()=>{ applyAccent(hex); buildSwatches(); }; el.accentSwatches.appendChild(b); }); }
+el.accentApply.onclick=()=>{ applyAccent(el.accentCustom.value); buildSwatches(); };
 
 /* ========= Step nav ========= */
-el.step1Btn.onclick = ()=> setStep(1);
-el.step2Btn.onclick = ()=> setStep(2);
-el.step3Btn.onclick = ()=> setStep(3);
-
-function setStep(n){ 
-  if (step === n) return; // Don't re-render if already on this step
-  
-  step = n; 
-  const sections = [el.step1, el.step2, el.step3]; 
-  const buttons = [el.step1Btn, el.step2Btn, el.step3Btn]; 
-  
-  sections.forEach((sec, idx)=>{ 
-    if(idx === n-1){ 
-      sec.classList.add('active'); 
-      sec.setAttribute('aria-hidden','false'); 
-    } else { 
-      sec.classList.remove('active'); 
-      sec.setAttribute('aria-hidden','true'); 
-    } 
-  }); 
-  
-  buttons.forEach((btn, idx)=>{ 
-    if(idx === n-1){ 
-      btn.className = 'btn pill primary'; 
-      btn.setAttribute('aria-selected', 'true'); 
-      btn.setAttribute('tabindex', '0'); 
-    } else { 
-      btn.className = 'btn pill ghost'; 
-      btn.setAttribute('aria-selected', 'false'); 
-      btn.setAttribute('tabindex', '-1'); 
-    } 
-  }); 
-  
-  // Only re-render the current step
-  const updateMap = {};
-  updateMap[`step${n}`] = true;
-  render(updateMap);
-}
+el.step1Btn.onclick=()=> setStep(1);
+el.step2Btn.onclick=()=> setStep(2);
+el.step3Btn.onclick=()=> setStep(3);
+function setStep(n){ if(step===n) return; step=n; const secs=[el.step1,el.step2,el.step3]; const btns=[el.step1Btn,el.step2Btn,el.step3Btn]; secs.forEach((sec,i)=>{ if(i===n-1){ sec.classList.add('active'); sec.setAttribute('aria-hidden','false'); } else { sec.classList.remove('active'); sec.setAttribute('aria-hidden','true'); } }); btns.forEach((b,i)=>{ if(i===n-1){ b.className='btn pill primary'; b.setAttribute('aria-selected','true'); b.setAttribute('tabindex','0'); } else { b.className='btn pill ghost'; b.setAttribute('aria-selected','false'); b.setAttribute('tabindex','-1'); } }); const update={}; update[`step${n}`]=true; render(update); }
 
 /* ========= Add form ========= */
-el.addForm.onsubmit = (e)=>{ 
-  e.preventDefault(); 
-  const v = el.taskInput.value.trim(); 
-  
-  // Input validation
-  if(!v) {
-    showError('Please enter a task description');
-    el.taskInput.focus();
-    return; 
-  }
-  
-  if(v.length > 200) {
-    showError('Task description must be less than 200 characters');
-    el.taskInput.focus();
-    return;
-  }
-  
-  // Check for duplicate tasks
-  if(tasks.some(t => t.title.toLowerCase() === v.toLowerCase())) {
-    showError('A task with this description already exists');
-    el.taskInput.focus();
-    return;
-  }
-  
-  try {
-    addLoadingState(el.addForm);
-    tasks.unshift({id:uid(), title:v, completed:false, quadrant:null, rank:null, createdAt:nowMs(), updatedAt:nowMs()}); 
-    el.taskInput.value=''; 
-    saveLocal(); 
-    queueUpload(); 
-    
-    // Only update step1 and suggestions
-    markForUpdate(['step1']);
-    renderState.suggestions = true;
-    render();
-    
-    // Visual feedback
-    removeLoadingState(el.addForm);
-    addSuccessFlash(el.inboxList);
-    showSuccess('Task added successfully');
-    
-    // Focus back to input for quick task entry
-    setTimeout(() => el.taskInput.focus(), 100);
-  } catch(error) {
-    removeLoadingState(el.addForm);
-    console.error('Error adding task:', error);
-    showError('Failed to add task. Please try again.');
-  }
+el.addForm.onsubmit=(e)=>{ e.preventDefault(); const v=el.taskInput.value.trim(); if(!v){ showError('Please enter a task description'); el.taskInput.focus(); return; } if(v.length>200){ showError('Task description must be less than 200 characters'); el.taskInput.focus(); return; } if(tasks.some(t=> (t.title||'').toLowerCase()===v.toLowerCase())){ showError('A task with this description already exists'); el.taskInput.focus(); return; }
+  addLoadingState(el.addForm); try{ tasks.unshift({id:uid(), title:v, completed:false, quadrant:null, rank:null, createdAt:nowMs(), updatedAt:nowMs()}); el.taskInput.value=''; saveLocal(); queueUpload(); markForUpdate(['step1']); renderState.suggestions=true; render(); removeLoadingState(el.addForm); addSuccessFlash(el.inboxList); showSuccess('Task added successfully'); setTimeout(()=> el.taskInput.focus(),100); }catch(err){ removeLoadingState(el.addForm); console.error(err); showError('Failed to add task.'); }
 };
-
-// Add debounced input handler for real-time suggestions
-const debouncedSuggestionUpdate = debounce(() => {
-  if (step === 1) {
-    renderState.suggestions = true;
-    render({ suggestions: true });
-  }
-}, 300);
-
-// Update suggestions as user types
+const debouncedSuggestionUpdate = debounce(()=>{ if(step===1){ renderState.suggestions=true; render({suggestions:true}); } }, 300);
 el.taskInput.addEventListener('input', debouncedSuggestionUpdate);
 
 /* ========= Current list controls ========= */
-el.showCompleted.onchange = ()=>{ 
-  showCompleted = el.showCompleted.checked; 
-  markForUpdate(['step3']);
-  render(); 
-};
-el.clearBtn.onclick = ()=>{ 
-  const taskCount = tasks.length;
-  if(taskCount === 0) {
-    showInfo('No tasks to clear');
-    return;
-  }
-  
-  const confirmed = confirm(`Are you sure you want to delete all ${taskCount} tasks?\n\nThis action cannot be undone.`);
-  if(confirmed){ 
-    try {
-      addLoadingState(el.clearBtn);
-      tasks=[]; 
-      saveLocal(); 
-      queueUpload(true); 
-      markForUpdate(['step1', 'step2', 'step3']);
-      renderState.suggestions = true;
-      render();
-      removeLoadingState(el.clearBtn);
-      showSuccess(`Cleared ${taskCount} tasks successfully`);
-    } catch(error) {
-      removeLoadingState(el.clearBtn);
-      console.error('Error clearing tasks:', error);
-      showError('Failed to clear tasks. Please try again.');
-    }
-  } 
-};
+el.showCompleted.onchange=()=>{ showCompleted=el.showCompleted.checked; markForUpdate(['step3']); render(); };
+el.clearBtn.onclick=()=>{ const n=tasks.length; if(n===0){ showInfo('No tasks to clear'); return; } if(confirm(`Delete all ${n} tasks? This cannot be undone.`)){ addLoadingState(el.clearBtn); try{ tasks=[]; saveLocal(); queueUpload(true); markForUpdate(['step1','step2','step3']); renderState.suggestions=true; render(); showSuccess(`Cleared ${n} tasks`); } finally { removeLoadingState(el.clearBtn); } } };
 
 /* ========= Suggestions ========= */
-function computeSuggestions(){ 
-  try {
-    const verbs = new Map(); 
-    for(const t of tasks){ 
-      const title = t.title || '';
-      if (typeof title !== 'string') continue;
-      const w = title.split(/\s+/)[0]?.toLowerCase() || '';
-      if(!w) continue; 
-      verbs.set(w, (verbs.get(w)||0)+1); 
-    } 
-    const common = Array.from(verbs.entries())
-      .sort((a,b)=>b[1]-a[1])
-      .map(([w])=>w)
-      .filter(w => w.length > 2); // Filter out very short words
-    const base = ["Plan","Book","Email","Call","Review","Draft","Schedule","Organise"]; 
-    const pool = [...new Set([...common, ...base])].slice(0,8); 
-    return pool.map(v => v.charAt(0).toUpperCase()+v.slice(1) + " …"); 
-  } catch(error) {
-    console.error('Error computing suggestions:', error);
-    return ["Plan …", "Email …", "Call …", "Review …"];
-  }
-}
-function applySuggestion(s){ 
-  try {
-    const txt = s.endsWith(' …') ? s.slice(0,-2) + ' ' : s + ' '; 
-    el.taskInput.value = txt; 
-    el.taskInput.focus(); 
-    el.taskInput.setSelectionRange(txt.length, txt.length);
-  } catch(error) {
-    console.error('Error applying suggestion:', error);
-    showError('Failed to apply suggestion');
-  }
-}
+function computeSuggestions(){ try{ const verbs=new Map(); for(const t of tasks){ const title=t.title||''; const w=title.split(/\s+/)[0]?.toLowerCase()||''; if(!w) continue; verbs.set(w,(verbs.get(w)||0)+1); } const common=Array.from(verbs.entries()).sort((a,b)=>b[1]-a[1]).map(([w])=>w).filter(w=>w.length>2); const base=["Plan","Book","Email","Call","Review","Draft","Schedule","Organise"]; const pool=[...new Set([...common,...base])].slice(0,8); return pool.map(v=> v.charAt(0).toUpperCase()+v.slice(1)+' …'); }catch(e){ return ["Plan …","Email …","Call …","Review …"]; } }
+function applySuggestion(s){ const txt = s.endsWith(' …')? s.slice(0,-2)+' ' : s+' '; el.taskInput.value=txt; el.taskInput.focus(); el.taskInput.setSelectionRange(txt.length, txt.length); }
 
 /* ========= Categorise flow ========= */
-function answerUrgent(val){ 
-  answeredUrgent = val; 
-  markForUpdate(['step2']);
-  render(); 
-}
+function answerUrgent(val){ answeredUrgent=val; markForUpdate(['step2']); render(); }
+function answerImportant(val){ const current=inbox(false)[0]; if(!current) return; const urgent=!!answeredUrgent; const q = urgent ? (val? 'Q1':'Q3') : (val? 'Q2':'Q4'); const maxRank=Math.max(-1,...tasks.filter(t=>t.quadrant===q && t.rank!=null).map(t=>t.rank)); current.quadrant=q; current.rank=maxRank+1; current.updatedAt=nowMs(); saveLocal(); queueUpload(); answeredUrgent=null; markForUpdate(['step1','step2','step3']); render(); }
 
-function answerImportant(val){ 
-  const current = inbox(false)[0]; 
-  if(!current) return; 
-  
-  const urgent = !!answeredUrgent; 
-  const q = urgent ? (val ? 'Q1' : 'Q3') : (val ? 'Q2' : 'Q4'); 
-  const maxRank = Math.max(-1, ...tasks.filter(t=>t.quadrant===q && t.rank!=null).map(t=>t.rank)); 
-  
-  current.quadrant = q; 
-  current.rank = maxRank + 1; 
-  current.updatedAt = nowMs(); 
-  
-  saveLocal(); 
-  queueUpload(); 
-  answeredUrgent = null; 
-  
-  // Update both step1 (inbox) and step2 (quadrants)
-  markForUpdate(['step1', 'step2', 'step3']);
-  render();
-}
+/* ========= Prioritise ========= */
+function moveWithinQuadrant(id,qKey,delta){ const q=tasks.filter(t=>t.quadrant===qKey).sort((a,b)=> (num(a.rank)-num(b.rank)) || (a.createdAt-b.createdAt)); const i=q.findIndex(x=>x.id===id); if(i<0) return; const tgt=i+delta; if(tgt<0||tgt>=q.length) return; const a=q[i], b=q[tgt]; const tmp=a.rank; a.rank=b.rank; b.rank=tmp; normalizeRanks(qKey); saveLocal(); queueUpload(); markForUpdate(['step2','step3']); render(); }
+function normalizeRanks(qKey){ const q=tasks.filter(t=>t.quadrant===qKey).sort((a,b)=> (num(a.rank)-num(b.rank)) || (a.createdAt-b.createdAt)); q.forEach((t,i)=>{ t.rank=i; t.updatedAt=nowMs(); }); }
 
-/* ========= Prioritise (LIST layout) ========= */
-function moveWithinQuadrant(id, qKey, delta){ 
-  const q = tasks.filter(t=>t.quadrant===qKey).sort((a,b)=> (num(a.rank)-num(b.rank)) || (a.createdAt-b.createdAt)); 
-  const index = q.findIndex(x=>x.id===id); 
-  if(index<0) return; 
-  const target = index+delta; 
-  if(target<0 || target>=q.length) return; 
-  
-  const a = q[index], b = q[target]; 
-  const tmp = a.rank; 
-  a.rank = b.rank; 
-  b.rank = tmp; 
-  
-  normalizeRanks(qKey); 
-  saveLocal(); 
-  queueUpload(); 
-  
-  // Only update step2 and step3 (quadrants and current list)
-  markForUpdate(['step2', 'step3']);
-  render(); 
-}
-
-function normalizeRanks(qKey){ 
-  const q = tasks.filter(t=>t.quadrant===qKey).sort((a,b)=> (num(a.rank)-num(b.rank)) || (a.createdAt-b.createdAt)); 
-  q.forEach((t,i)=> { t.rank = i; t.updatedAt = nowMs(); }); 
-}
-
-/* ========= Performance-optimized Render ========= */
-function render(forceUpdate = {}){
-  // Merge force updates with render state
-  const shouldUpdate = { ...renderState, ...forceUpdate };
-  
-  // Step 1 - Only update if needed
-  if (shouldUpdate.step1) {
-    renderStep1();
-    renderState.step1 = false;
-    renderState.suggestions = false; // Clear suggestions flag as renderStep1 includes them
-  }
-  
-  // Step 2 - Only update if needed
-  if (shouldUpdate.step2) {
-    renderStep2();
-    renderState.step2 = false;
-  }
-  
-  // Step 3 - Only update if needed
-  if (shouldUpdate.step3) {
-    renderStep3();
-    renderState.step3 = false;
-  }
-  
-  // Update suggestions separately if needed (only if step1 wasn't updated)
-  if (shouldUpdate.suggestions && !shouldUpdate.step1) {
-    renderSuggestions();
-    renderState.suggestions = false;
-  }
-}
-
-function renderStep1() {
-  const unc = inbox(false);
-  updateList(el.inboxList, unc, {showQuadrant:false}, 'No tasks');
-  renderSuggestions();
-}
-
-function renderStep2() {
-  const g = groups(true);
-  const current = inbox(false)[0];
-  
-  // Update categorization box
-  updateCategoriseBox(current);
-  
-  // Update quadrant lists
-  mountQuadrantList(el.listQ1, g.Q1, 'Q1');
-  mountQuadrantList(el.listQ2, g.Q2, 'Q2');
-  mountQuadrantList(el.listQ3, g.Q3, 'Q3');
-  mountQuadrantList(el.listQ4, g.Q4, 'Q4');
-}
-
-function renderStep3() {
-  const all = allSorted(showCompleted);
-  updateList(el.currentList, all, {showQuadrant:true}, 'No tasks');
-  el.showCompleted.checked = showCompleted;
-}
-
-function renderSuggestions() {
-  const sugg = computeSuggestions(); 
-  el.suggestions.innerHTML=''; 
-  const fragment = document.createDocumentFragment();
-  sugg.forEach(s => { 
-    const b = document.createElement('button'); 
-    b.className='chip'; 
-    b.type='button'; 
-    b.textContent=s; 
-    b.onclick = ()=> applySuggestion(s); 
-    fragment.appendChild(b); 
-  });
-  el.suggestions.appendChild(fragment);
-}
-
-// Optimized list update function with proper semantic empty states
-function updateList(container, items, opts, emptyMessage) {
-  if (!items.length) {
-    const emptyLi = document.createElement('li');
-    emptyLi.className = 'empty-state';
-    emptyLi.setAttribute('role', 'listitem');
-    emptyLi.setAttribute('aria-live', 'polite');
-    emptyLi.innerHTML = `<p>${escapeHtml(emptyMessage)}</p>`;
-    container.innerHTML = '';
-    container.appendChild(emptyLi);
-    return;
-  }
-  
-  // Use document fragment for efficient DOM manipulation
-  const fragment = document.createDocumentFragment();
-  items.forEach(item => fragment.appendChild(rowItem(item, opts)));
-  
-  container.innerHTML = '';
-  container.appendChild(fragment);
-}
-
-function updateCategoriseBox(current) {
-  if(!current){ 
-    el.categoriseBox.innerHTML = '<div class="muted" style="text-align:center" role="status">No uncategorised tasks.</div>'; 
-  }
-  else if(answeredUrgent===null){ 
-    el.categoriseBox.innerHTML = `
-      <div class="sec-title">Categorise</div>
-      <div class="task"><div class="title">${escapeHtml(current.title)}</div><div class="spacer"></div></div>
-      <div class="btnrow" style="margin-top:10px">
-        <button class="btn pill primary" onclick="answerUrgent(true)">Urgent</button>
-        <button class="btn pill ghost" onclick="answerUrgent(false)">Not urgent</button>
-      </div>`; 
-  }
-  else { 
-    el.categoriseBox.innerHTML = `
-      <div class="sec-title">Categorise</div>
-      <div class="task"><div class="title">${escapeHtml(current.title)}</div><div class="spacer"></div></div>
-      <div class="btnrow" style="margin-top:10px">
-        <button class="btn pill primary" onclick="answerImportant(true)">Important</button>
-        <button class="btn pill ghost" onclick="answerImportant(false)">Not important</button>
-      </div>
-      <div class="btnrow" style="margin-top:8px">
-        <button class="btn pill ghost" onclick="answerUrgent(null)">Back</button>
-      </div>`; 
-  }
-}
-
-// Mark what needs to be re-rendered
-function markForUpdate(sections = ['step1', 'step2', 'step3']) {
-  sections.forEach(section => {
-    if (renderState.hasOwnProperty(section)) {
-      renderState[section] = true;
-    }
-  });
-}
-
-// Safe render helper for forced updates
-function forceRender(updateMap = {}) {
-  const hasUpdates = Object.values(renderState).some(flag => flag) || Object.keys(updateMap).length > 0;
-  if (!hasUpdates) {
-    // Fallback to full render if no updates specified (safety net)
-    console.warn('No render flags set, performing full render');
-    markForUpdate(['step1', 'step2', 'step3']);
-    renderState.suggestions = true;
-  }
-  render(updateMap);
-}
-
-/* ========= Row builders ========= */
-function rowItem(t, opts){
-  const li = document.createElement('li'); 
-  li.dataset.id = t.id; 
-  li.className = 'task' + ((opts && opts.showQuadrant && t.quadrant)? (' q-' + t.quadrant) : '');
-  li.setAttribute('role', 'listitem');
-  
-  const cb = document.createElement('input'); 
-  cb.type='checkbox'; 
-  cb.id = `task-${t.id}`;
-  cb.checked=t.completed; 
-  cb.setAttribute('aria-describedby', `task-title-${t.id}`);
-  cb.onchange = ()=>{ 
-    t.completed = !t.completed; 
-    t.updatedAt = Date.now(); 
-    saveLocal(); 
-    queueUpload(); 
-    // Smart update: only update affected steps
-    const updates = ['step3']; // Always update step3 (current list)
-    if (!t.quadrant) updates.push('step1'); // Update step1 if in inbox
-    if (t.quadrant) updates.push('step2'); // Update step2 if in quadrants
-    markForUpdate(updates);
-    render(); 
-  };
-  
-  const title = document.createElement('div'); 
-  title.className='title'; 
-  title.id = `task-title-${t.id}`;
-  title.textContent=t.title || ''; 
-  if(t.completed){ title.className+=' strike'; }
-  
-  if(opts && opts.showQuadrant && t.quadrant){ 
-    const pill = document.createElement('span'); 
-    pill.className = 'qpill '+t.quadrant; 
-    pill.textContent = t.quadrant;
-    pill.setAttribute('aria-label', `Priority quadrant ${t.quadrant}`);
-    title.appendChild(pill); 
-  }
-  
-  const spacer = document.createElement('div'); spacer.className='spacer';
-  
-  const del = document.createElement('button'); 
-  del.className='btn pill ghost closebtn'; 
-  del.textContent='×'; 
-  del.setAttribute('aria-label', `Delete task: ${t.title}`);
-  del.title='Delete task';
-  del.onclick = ()=> requestDelete(t, ()=>{ 
-    tasks = tasks.filter(x=>x.id!==t.id); 
-    saveLocal(); 
-    queueUpload(); 
-    __recordDelete(); 
-    markForUpdate(['step1', 'step2', 'step3']); 
-    render(); 
-  });
-  
-  li.append(cb, title, spacer, del); 
-  return li;
-}
-
-function mountQuadrantList(container, arr, key){
-  if(!arr.length){ 
-    const emptyLi = document.createElement('li');
-    emptyLi.className = 'empty-state';
-    emptyLi.setAttribute('role', 'listitem');
-    emptyLi.style.padding = '20px';
-    emptyLi.innerHTML = '<p style="font-size:13px;color:var(--muted)">No tasks in this quadrant</p>';
-    container.innerHTML = '';
-    container.appendChild(emptyLi);
-    return; 
-  }
-  
-  // Use document fragment for efficient DOM manipulation
-  const fragment = document.createDocumentFragment();
-  
-  arr.forEach((t, idx)=>{
-    const li = createQuadrantListItem(t, key);
-    fragment.appendChild(li);
-  });
-  
-  container.innerHTML = '';
-  container.appendChild(fragment);
-}
-
-// Separate function for creating quadrant list items (better organization)
-function createQuadrantListItem(t, key) {
-  const li = document.createElement('li'); 
-  li.className='task quadrant-task'; 
-  li.dataset.id=t.id;
-  li.setAttribute('role', 'listitem');
-  
-  const title = document.createElement('div'); 
-  title.className='title'; 
-  title.id = `task-title-${key}-${t.id}`;
-  title.textContent=t.title || ''; 
-  if(t.completed){ title.className+=' strike'; }
-  
-  const spacer = document.createElement('div'); spacer.className='spacer';
-  
-  const actions = document.createElement('div'); 
-  actions.className='row-actions';
-  actions.setAttribute('role', 'group');
-  actions.setAttribute('aria-label', `Actions for ${t.title}`);
-  
-  const up = document.createElement('button'); 
-  up.className='btn icon primary'; 
-  up.setAttribute('aria-label', `Move ${t.title} up in priority`);
-  up.title='Move up'; 
-  up.innerHTML='<span aria-hidden="true">↑</span>'; 
-  up.onclick=()=>moveWithinQuadrant(t.id,key,-1);
-  
-  const down = document.createElement('button'); 
-  down.className='btn icon primary'; 
-  down.setAttribute('aria-label', `Move ${t.title} down in priority`);
-  down.title='Move down'; 
-  down.innerHTML='<span aria-hidden="true">↓</span>'; 
-  down.onclick=()=>moveWithinQuadrant(t.id,key,+1);
-  
-  const decat = document.createElement('button'); 
-  decat.className='btn icon ghost'; 
-  decat.setAttribute('aria-label', `Remove ${t.title} from category`);
-  decat.title='De‑categorise'; 
-  decat.innerHTML='<span aria-hidden="true">↩</span>'; 
-  decat.onclick=()=>{ 
-    t.quadrant=null; 
-    t.rank=null; 
-    t.updatedAt=Date.now(); 
-    saveLocal(); 
-    queueUpload(); 
-    markForUpdate(['step1', 'step2', 'step3']);
-    render(); 
-  };
-  
-  const del = document.createElement('button'); 
-  del.className='btn icon ghost closebtn'; 
-  del.setAttribute('aria-label', `Delete task: ${t.title}`);
-  del.title='Delete'; 
-  del.textContent='×'; 
-  del.onclick=()=> requestDelete(t, ()=>{ 
-    tasks = tasks.filter(x=>x.id!==t.id); 
-    saveLocal(); 
-    queueUpload(); 
-    __recordDelete(); 
-    markForUpdate(['step1', 'step2', 'step3']);
-    render(); 
-  });
-  
-  actions.append(up,down,decat,del);
-  li.append(title,spacer,actions);
-  return li;
-}
+/* ========= Render ========= */
+function render(forceUpdate={}){ const should={...renderState,...forceUpdate}; if(should.step1){ renderStep1(); renderState.step1=false; renderState.suggestions=false; } if(should.step2){ renderStep2(); renderState.step2=false; } if(should.step3){ renderStep3(); renderState.step3=false; } if(should.suggestions && !should.step1){ renderSuggestions(); renderState.suggestions=false; } }
+function renderStep1(){ const unc=inbox(false); updateList(el.inboxList, unc, {showQuadrant:false}, 'No tasks'); renderSuggestions(); }
+function renderStep2(){ const g=groups(true); const current=inbox(false)[0]; updateCategoriseBox(current); mountQuadrantList(el.listQ1,g.Q1,'Q1'); mountQuadrantList(el.listQ2,g.Q2,'Q2'); mountQuadrantList(el.listQ3,g.Q3,'Q3'); mountQuadrantList(el.listQ4,g.Q4,'Q4'); }
+function renderStep3(){ const all=allSorted(showCompleted); updateList(el.currentList, all, {showQuadrant:true}, 'No tasks'); el.showCompleted.checked=showCompleted; }
+function renderSuggestions(){ const sugg=computeSuggestions(); el.suggestions.innerHTML=''; const frag=document.createDocumentFragment(); sugg.forEach(s=>{ const b=document.createElement('button'); b.className='chip'; b.type='button'; b.textContent=s; b.onclick=()=>applySuggestion(s); frag.appendChild(b); }); el.suggestions.appendChild(frag); }
+function updateList(container, items, opts, emptyMsg){ if(!items.length){ const li=document.createElement('li'); li.className='empty-state'; li.setAttribute('role','listitem'); li.setAttribute('aria-live','polite'); li.innerHTML=`<p>${escapeHtml(emptyMsg)}</p>`; container.innerHTML=''; container.appendChild(li); return; } const frag=document.createDocumentFragment(); items.forEach(item=> frag.appendChild(rowItem(item,opts))); container.innerHTML=''; container.appendChild(frag); }
+function updateCategoriseBox(current){ if(!current){ el.categoriseBox.innerHTML='<div class="muted" style="text-align:center" role="status">No uncategorised tasks.</div>'; }
+  else if(answeredUrgent===null){ el.categoriseBox.innerHTML = `
+    <div class="sec-title">Categorise</div>
+    <div class="task"><div class="title">${escapeHtml(current.title)}</div><div class="spacer"></div></div>
+    <div class="btnrow" style="margin-top:10px">
+      <button class="btn pill primary" onclick="answerUrgent(true)">Urgent</button>
+      <button class="btn pill ghost" onclick="answerUrgent(false)">Not urgent</button>
+    </div>`; }
+  else { el.categoriseBox.innerHTML = `
+    <div class="sec-title">Categorise</div>
+    <div class="task"><div class="title">${escapeHtml(current.title)}</div><div class="spacer"></div></div>
+    <div class="btnrow" style="margin-top:10px">
+      <button class="btn pill primary" onclick="answerImportant(true)">Important</button>
+      <button class="btn pill ghost" onclick="answerImportant(false)">Not important</button>
+    </div>
+    <div class="btnrow" style="margin-top:8px">
+      <button class="btn pill ghost" onclick="answerUrgent(null)">Back</button>
+    </div>`; } }
+function markForUpdate(parts=['step1','step2','step3']){ parts.forEach(p=>{ if(p in renderState) renderState[p]=true; }); }
+function rowItem(t,opts){ const li=document.createElement('li'); li.dataset.id=t.id; li.className='task'+((opts&&opts.showQuadrant&&t.quadrant)?(' q-'+t.quadrant):''); li.setAttribute('role','listitem'); const cb=document.createElement('input'); cb.type='checkbox'; cb.id=`task-${t.id}`; cb.checked=t.completed; cb.setAttribute('aria-describedby',`task-title-${t.id}`); cb.onchange=()=>{ t.completed=!t.completed; t.updatedAt=Date.now(); saveLocal(); queueUpload(); const updates=['step3']; if(!t.quadrant) updates.push('step1'); if(t.quadrant) updates.push('step2'); markForUpdate(updates); render(); }; const title=document.createElement('div'); title.className='title'; title.id=`task-title-${t.id}`; title.textContent=t.title||''; if(t.completed){ title.className+=' strike'; } if(opts&&opts.showQuadrant&&t.quadrant){ const pill=document.createElement('span'); pill.className='qpill '+t.quadrant; pill.textContent=t.quadrant; pill.setAttribute('aria-label',`Priority quadrant ${t.quadrant}`); title.appendChild(pill); }
+  const spacer=document.createElement('div'); spacer.className='spacer'; const del=document.createElement('button'); del.className='btn pill ghost closebtn'; del.textContent='×'; del.setAttribute('aria-label',`Delete task: ${t.title}`); del.title='Delete task'; del.onclick=()=> requestDelete(t, ()=>{ tasks = tasks.filter(x=>x.id!==t.id); saveLocal(); queueUpload(); __recordDelete(); markForUpdate(['step1','step2','step3']); render(); }); li.append(cb,title,spacer,del); return li; }
+function mountQuadrantList(container, arr, key){ if(!arr.length){ const li=document.createElement('li'); li.className='empty-state'; li.setAttribute('role','listitem'); li.style.padding='20px'; li.innerHTML='<p style="font-size:13px;color:var(--muted)">No tasks in this quadrant</p>'; container.innerHTML=''; container.appendChild(li); return; } const frag=document.createDocumentFragment(); arr.forEach(t=>{ frag.appendChild(createQuadrantListItem(t,key)); }); container.innerHTML=''; container.appendChild(frag); }
+function createQuadrantListItem(t,key){ const li=document.createElement('li'); li.className='task quadrant-task'; li.dataset.id=t.id; li.setAttribute('role','listitem'); const title=document.createElement('div'); title.className='title'; title.id=`task-title-${key}-${t.id}`; title.textContent=t.title||''; if(t.completed){ title.className+=' strike'; } const spacer=document.createElement('div'); spacer.className='spacer'; const actions=document.createElement('div'); actions.className='row-actions'; actions.setAttribute('role','group'); actions.setAttribute('aria-label',`Actions for ${t.title}`);
+  const up=document.createElement('button'); up.className='btn icon primary'; up.setAttribute('aria-label',`Move ${t.title} up in priority`); up.title='Move up'; up.innerHTML='<span aria-hidden="true">↑</span>'; up.onclick=()=>moveWithinQuadrant(t.id,key,-1);
+  const down=document.createElement('button'); down.className='btn icon primary'; down.setAttribute('aria-label',`Move ${t.title} down in priority`); down.title='Move down'; down.innerHTML='<span aria-hidden="true">↓</span>'; down.onclick=()=>moveWithinQuadrant(t.id,key,+1);
+  const decat=document.createElement('button'); decat.className='btn icon ghost'; decat.setAttribute('aria-label',`Remove ${t.title} from category`); decat.title='De‑categorise'; decat.innerHTML='<span aria-hidden="true">↩</span>'; decat.onclick=()=>{ t.quadrant=null; t.rank=null; t.updatedAt=Date.now(); saveLocal(); queueUpload(); markForUpdate(['step1','step2','step3']); render(); };
+  const del=document.createElement('button'); del.className='btn icon ghost closebtn'; del.setAttribute('aria-label',`Delete task: ${t.title}`); del.title='Delete'; del.textContent='×'; del.onclick=()=> requestDelete(t, ()=>{ tasks = tasks.filter(x=>x.id!==t.id); saveLocal(); queueUpload(); __recordDelete(); markForUpdate(['step1','step2','step3']); render(); });
+  actions.append(up,down,decat,del); li.append(title,spacer,actions); return li; }
 
 /* ========= Settings modal ========= */
-const modal = document.getElementById('settingsModal');
-byId('settingsBtn').onclick = ()=> openSettings();
-byId('closeSettings').onclick = ()=> closeSettings();
-
-// New settings functionality
-el.fontSelect.onchange = () => applyFont(el.fontSelect.value);
-el.exportData.onclick = () => exportTasks();
-el.importData.onclick = () => el.importFile.click();
-el.importFile.onchange = (e) => importTasks(e.target.files[0]);
-
-function applyFont(fontFamily) {
-  document.documentElement.style.setProperty('--font-family', fontFamily);
-  // Save to localStorage
-  saveUserSettings();
-}
-
-function exportTasks() {
-  const data = {
-    tasks: tasks,
-    settings: JSON.parse(localStorage.getItem('covey_settings') || '{}'),
-    exported: new Date().toISOString()
-  };
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `covey-todo-${new Date().toISOString().split('T')[0]}.json`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showSuccess('Tasks exported successfully!');
-}
-
-function importTasks(file) {
-  if (!file) return;
-  
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const data = JSON.parse(e.target.result);
-      if (data.tasks && Array.isArray(data.tasks)) {
-        if (confirm(`Import ${data.tasks.length} tasks? This will replace your current tasks.`)) {
-          tasks = data.tasks;
-          saveLocal();
-          queueUpload();
-          markForUpdate(['step1', 'step2', 'step3']);
-          renderState.suggestions = true;
-          render();
-          showSuccess(`Imported ${data.tasks.length} tasks successfully!`);
-        }
-      } else {
-        showError('Invalid file format. Please select a valid Covey ToDo export file.');
-      }
-    } catch (error) {
-      console.error('Import error:', error);
-      showError('Failed to import tasks. Please check the file format.');
-    }
-  };
-  reader.readAsText(file);
-  // Clear the input so same file can be selected again
-  el.importFile.value = '';
-}
-
-function saveUserSettings() {
-  try {
-    const settings = {
-      fontFamily: el.fontSelect?.value || 'system-ui, -apple-system, \'Segoe UI\', Roboto, Inter, Arial, sans-serif',
-      confirmDeletes: el.confirmDeletes?.checked !== false,
-      enableAnimations: el.enableAnimations?.checked !== false,
-      autoFocusInput: el.autoFocusInput?.checked !== false
-    };
-    localStorage.setItem('covey_settings', JSON.stringify(settings));
-  } catch(error) {
-    console.warn('Could not save settings (incognito mode?):', error);
-    // Settings will work for this session but won't persist
-  }
-}
-
-function loadUserSettings() {
-  try {
-    const settings = JSON.parse(localStorage.getItem('covey_settings') || '{}');
-    
-    // Apply font
-    if (settings.fontFamily) {
-      document.documentElement.style.setProperty('--font-family', settings.fontFamily);
-    }
-    
-    // Apply other settings as needed
-    return settings;
-  } catch(error) {
-    console.warn('Could not load settings (incognito mode?):', error);
-    return {}; // Return empty settings object as fallback
-  }
-}
+const modal=document.getElementById('settingsModal');
+byId('settingsBtn').onclick=()=> openSettings();
+byId('closeSettings').onclick=()=> closeSettings();
+function applyFont(f){ document.documentElement.style.setProperty('--font-family', f); saveUserSettings(); }
+el.exportData.onclick=()=> exportTasks();
+el.importData.onclick=()=> el.importFile.click();
+el.importFile.onchange=(e)=> importTasks(e.target.files[0]);
+function exportTasks(){ const data={ tasks, settings: JSON.parse(localStorage.getItem('covey_settings')||'{}'), exported:new Date().toISOString() }; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`covey-todo-${new Date().toISOString().split('T')[0]}.json`; a.click(); URL.revokeObjectURL(url); showSuccess('Tasks exported'); }
+function importTasks(file){ if(!file) return; const r=new FileReader(); r.onload=(e)=>{ try{ const data=JSON.parse(e.target.result); if(data.tasks && Array.isArray(data.tasks)){ if(confirm(`Import ${data.tasks.length} tasks? This will replace your current tasks.`)){ tasks=data.tasks; saveLocal(); queueUpload(); markForUpdate(['step1','step2','step3']); renderState.suggestions=true; render(); showSuccess(`Imported ${data.tasks.length} tasks`); } } else { showError('Invalid file format'); } } catch(err){ console.error('Import error:',err); showError('Failed to import tasks'); } }; r.readAsText(file); el.importFile.value=''; }
+function saveUserSettings(){ try{ const s={ fontFamily: el.fontSelect?.value || 'system-ui, -apple-system, \'Segoe UI\', Roboto, Inter, Arial, sans-serif', confirmDeletes: el.confirmDeletes?.checked !== false, enableAnimations: el.enableAnimations?.checked !== false, autoFocusInput: el.autoFocusInput?.checked !== false }; localStorage.setItem('covey_settings', JSON.stringify(s)); }catch(e){ console.warn('Could not save settings:', e); }}
+function loadUserSettings(){ try{ const s=JSON.parse(localStorage.getItem('covey_settings')||'{}'); if(s.fontFamily){ document.documentElement.style.setProperty('--font-family', s.fontFamily); } return s; }catch(e){ return {}; }}
 
 /* ========= Authentication modal ========= */
-let currentUser = null;
+let currentUser=null;
+byId('signInBtn').onclick=()=> openSignIn();
+byId('closeSignIn').onclick=()=> closeSignIn();
+function openSignIn(){ el.signInModal.style.display='flex'; el.signInModal.setAttribute('aria-hidden','false'); setTimeout(()=> el.emailInput.focus(),100); }
+function closeSignIn(){ el.signInModal.style.display='none'; el.signInModal.setAttribute('aria-hidden','true'); el.signInBtn.focus(); }
+function updateAuthUI(user){ currentUser=user; if(user){ el.authStatus.textContent=`Signed in as ${user.email || user.displayName || 'User'}`; el.signInBtn.textContent='Account'; el.signInBtn.onclick=()=> showAccountMenu(); } else { el.authStatus.textContent='Signed out'; el.signInBtn.textContent='Sign in'; el.signInBtn.onclick=()=> openSignIn(); } }
+function showAccountMenu(){ if(confirm('Sign out of your account?')){ signOut(); } }
 
-byId('signInBtn').onclick = ()=> openSignIn();
-byId('closeSignIn').onclick = ()=> closeSignIn();
+// Firebase
+let firebaseApp=null; let auth=null;
+function userDocRef(uid){ return db.collection('users').doc(uid).collection('lists').doc('default'); }
+function initializeFirebase(){ try{
+  const firebaseConfig={
+    apiKey:"AIzaSyA_30R8nbkxbfZFMlFk3ZrAVd64GnT5Bdc",
+    authDomain:"covey-to-do-minimal.firebaseapp.com",
+    projectId:"covey-to-do-minimal",
+    storageBucket:"covey-to-do-minimal.appspot.com", // fixed domain
+    messagingSenderId:"347259300013",
+    appId:"1:347259300013:web:5118af8df57c0f064f3e24",
+    measurementId:"G-XTK3S2LK46"
+  };
+  if(typeof firebase!=='undefined'){
+    firebaseApp=firebase.initializeApp(firebaseConfig);
+    auth=firebase.auth();
+    db=firebase.firestore();
 
-function openSignIn() {
-  el.signInModal.style.display = 'flex';
-  el.signInModal.setAttribute('aria-hidden', 'false');
-  // Focus first input
-  setTimeout(() => {
-    el.emailInput.focus();
-  }, 100);
-}
-
-function closeSignIn() {
-  el.signInModal.style.display = 'none';
-  el.signInModal.setAttribute('aria-hidden', 'true');
-  // Return focus to sign in button
-  el.signInBtn.focus();
-}
-
-function updateAuthUI(user) {
-  currentUser = user;
-  if (user) {
-    el.authStatus.textContent = `Signed in as ${user.email || user.displayName || 'User'}`;
-    el.signInBtn.textContent = 'Account';
-    el.signInBtn.onclick = ()=> showAccountMenu();
-  } else {
-    el.authStatus.textContent = 'Signed out';
-    el.signInBtn.textContent = 'Sign in';
-    el.signInBtn.onclick = ()=> openSignIn();
-  }
-}
-
-function showAccountMenu() {
-  // For now, just show a simple sign out option
-  if (confirm('Sign out of your account?')) {
-    signOut();
-  }
-}
-
-// Firebase Authentication Functions
-let firebaseApp = null;
-let auth = null;
-
-// Initialize Firebase
-function initializeFirebase() {
-  try {
-    const firebaseConfig = {
-      "apiKey": "AIzaSyA_30R8nbkxbfZFMlFk3ZrAVd64GnT5Bdc",
-      "authDomain": "covey-to-do-minimal.firebaseapp.com", 
-      "projectId": "covey-to-do-minimal",
-      "storageBucket": "covey-to-do-minimal.firebasestorage.app",
-      "messagingSenderId": "347259300013",
-      "appId": "1:347259300013:web:5118af8df57c0f064f3e24",
-      "measurementId": "G-XTK3S2LK46"
-    };
-    
-    if (typeof firebase !== 'undefined') {
-      firebaseApp = firebase.initializeApp(firebaseConfig);
-      auth = firebase.auth();
-      
-      // Set up auth state listener
-      auth.onAuthStateChanged(user => {
-        updateAuthUI(user);
+    // Auth state + realtime listener management
+    auth.onAuthStateChanged(async (user)=>{
+      updateAuthUI(user);
+      if(unsubscribe){ unsubscribe(); unsubscribe=null; }
+      if(!user || !db) return;
+      const ref=userDocRef(user.uid);
+      const snap=await ref.get();
+      if(!snap.exists){ await ref.set({ tasks: tasks||[], updatedAt: Date.now() }); }
+      unsubscribe = ref.onSnapshot((doc)=>{
+        const data = doc.data() || {};
+        const remoteTasks = Array.isArray(data.tasks)? data.tasks : [];
+        const remoteUpdated = Number(data.updatedAt || 0);
+        if(remoteUpdated > lastPushedAt){
+          tasks = remoteTasks;
+          saveLocal();
+          markForUpdate(['step1','step2','step3']);
+          render();
+        }
       });
-    } else {
-      throw new Error('Firebase SDK not loaded');
-    }
-  } catch (error) {
-    console.error('Firebase initialization error:', error);
-    // Firebase initialization failed - authentication features will be disabled
-  }
-}
-
-function signInWithEmail(email, password) {
-  if (!isFirebaseReady()) {
-    showError('Cloud sync not configured - sign in disabled');
-    return;
-  }
-  
-  el.authStatusModal.textContent = 'Signing in...';
-  
-  auth.signInWithEmailAndPassword(email, password)
-    .then(userCredential => {
-      closeSignIn();
-      showSuccess('Signed in successfully!');
-      el.authStatusModal.textContent = 'Idle';
-    })
-    .catch(error => {
-      console.error('Sign-in error:', error);
-      showError(`Sign-in failed: ${error.message}`);
-      el.authStatusModal.textContent = 'Idle';
     });
+  } else { throw new Error('Firebase SDK not loaded'); }
+ } catch(err){ console.error('Firebase init error:',err); }
 }
 
-function createAccount(email, password) {
-  if (!isFirebaseReady()) {
-    showError('Cloud sync not configured - account creation disabled');
-    return;
-  }
-  
-  el.authStatusModal.textContent = 'Creating account...';
-  
-  auth.createUserWithEmailAndPassword(email, password)
-    .then(userCredential => {
-      closeSignIn();
-      showSuccess('Account created and signed in!');
-      el.authStatusModal.textContent = 'Idle';
-    })
-    .catch(error => {
-      console.error('Account creation error:', error);
-      showError(`Account creation failed: ${error.message}`);
-      el.authStatusModal.textContent = 'Idle';
-    });
-}
+function signInWithEmail(email,password){ if(!isFirebaseReady()){ showError('Cloud sync not configured - sign in disabled'); return; } el.authStatusModal.textContent='Signing in...'; auth.signInWithEmailAndPassword(email,password).then(()=>{ closeSignIn(); showSuccess('Signed in!'); el.authStatusModal.textContent='Idle'; }).catch(err=>{ console.error('Sign-in error:',err); showError(`Sign-in failed: ${err.message}`); el.authStatusModal.textContent='Idle'; }); }
+function createAccount(email,password){ if(!isFirebaseReady()){ showError('Cloud sync not configured - account creation disabled'); return; } el.authStatusModal.textContent='Creating account...'; auth.createUserWithEmailAndPassword(email,password).then(()=>{ closeSignIn(); showSuccess('Account created!'); el.authStatusModal.textContent='Idle'; }).catch(err=>{ console.error('Create error:',err); showError(`Account creation failed: ${err.message}`); el.authStatusModal.textContent='Idle'; }); }
+function signInWithGoogle(){ if(!isFirebaseReady()){ showError('Cloud sync not configured - Google sign in disabled'); return; } el.authStatusModal.textContent='Connecting to Google...'; const provider=new firebase.auth.GoogleAuthProvider(); auth.signInWithPopup(provider).then(()=>{ closeSignIn(); showSuccess('Signed in with Google!'); el.authStatusModal.textContent='Idle'; }).catch(err=>{ console.error('Google sign-in error:',err); showError(`Google sign-in failed: ${err.message}`); el.authStatusModal.textContent='Idle'; }); }
+function signOut(){ if(!auth){ updateAuthUI(null); showInfo('Signed out'); return; } auth.signOut().then(()=>{ updateAuthUI(null); showInfo('Signed out'); }).catch(()=> showError('Sign-out failed')); }
 
-function signInWithGoogle() {
-  if (!isFirebaseReady()) {
-    showError('Cloud sync not configured - Google sign in disabled');
-    return;
-  }
-  
-  el.authStatusModal.textContent = 'Connecting to Google...';
-  
-  const provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithPopup(provider)
-    .then(result => {
-      closeSignIn();
-      showSuccess('Signed in with Google!');
-      el.authStatusModal.textContent = 'Idle';
-    })
-    .catch(error => {
-      console.error('Google sign-in error:', error);
-      showError(`Google sign-in failed: ${error.message}`);
-      el.authStatusModal.textContent = 'Idle';
-    });
-}
-
-function signOut() {
-  if (!auth) {
-    updateAuthUI(null);
-    showInfo('Signed out successfully');
-    return;
-  }
-  
-  auth.signOut().then(() => {
-    updateAuthUI(null);
-    showInfo('Signed out successfully');
-  }).catch(error => {
-    console.error('Sign-out error:', error);
-    showError('Sign-out failed');
-  });
-}
-
-// Form event handlers
-el.signInForm.onsubmit = (e) => {
-  e.preventDefault();
-  
-  if (!isFirebaseReady()) {
-    showError('Cloud sync not configured - sign in disabled');
-    return;
-  }
-  
-  const email = el.emailInput.value.trim();
-  const password = el.passwordInput.value;
-  
-  if (!email || !password) {
-    showError('Please enter both email and password');
-    return;
-  }
-  
-  signInWithEmail(email, password);
-};
-
-el.createAccountBtn.onclick = () => {
-  if (!isFirebaseReady()) {
-    showError('Cloud sync not configured - account creation disabled');
-    return;
-  }
-  
-  const email = el.emailInput.value.trim();
-  const password = el.passwordInput.value;
-  
-  if (!email || !password) {
-    showError('Please enter both email and password to create an account');
-    return;
-  }
-  
-  if (password.length < 6) {
-    showError('Password must be at least 6 characters long');
-    return;
-  }
-  
-  createAccount(email, password);
-};
-
-el.googleSignInBtn.onclick = () => {
-  if (!isFirebaseReady()) {
-    showError('Cloud sync not configured - Google sign in disabled');
-    return;
-  }
-  signInWithGoogle();
-};
-
-// Initialize auth state
-updateAuthUI(null);
-function openSettings(){ 
-  modal.style.display='flex'; 
-  modal.setAttribute('aria-hidden', 'false'); 
-  loadSettingsIntoUI(); 
-  buildSwatches(); 
-  // Focus first focusable element 
-  setTimeout(() => { 
-    const firstFocusable = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'); 
-    if (firstFocusable) firstFocusable.focus(); 
-  }, 100); 
-}
-
-function closeSettings(){ 
-  modal.style.display='none'; 
-  modal.setAttribute('aria-hidden', 'true'); 
-  // Return focus to settings button 
-  el.settingsBtn.focus(); 
-}
+el.signInForm.onsubmit=(e)=>{ e.preventDefault(); if(!isFirebaseReady()){ showError('Cloud sync not configured - sign in disabled'); return; } const email=el.emailInput.value.trim(); const password=el.passwordInput.value; if(!email||!password){ showError('Enter email and password'); return; } signInWithEmail(email,password); };
+el.createAccountBtn.onclick=()=>{ if(!isFirebaseReady()){ showError('Cloud sync not configured - account creation disabled'); return; } const email=el.emailInput.value.trim(); const password=el.passwordInput.value; if(!email||!password){ showError('Enter email and password'); return; } if(password.length<6){ showError('Password must be at least 6 characters'); return; } createAccount(email,password); };
+el.googleSignInBtn.onclick=()=>{ if(!isFirebaseReady()){ showError('Cloud sync not configured - Google sign in disabled'); return; } signInWithGoogle(); };
 
 /* ========= Error Handling & Notifications ========= */
-let notificationTimeout = null;
+let notificationTimeout=null;
+function showNotification(message,type='info'){ if(notificationTimeout) clearTimeout(notificationTimeout); const existing=document.querySelector('.notification'); if(existing) existing.remove(); const n=document.createElement('div'); n.className=`notification notification-${type}`; n.textContent=message; n.setAttribute('role','alert'); n.setAttribute('aria-live','polite'); Object.assign(n.style,{position:'fixed',top:'20px',right:'20px',background:type==='error'? '#ef4444' : type==='success'? '#10b981' : '#2563eb',color:'#fff',padding:'12px 20px',borderRadius:'8px',boxShadow:'0 4px 12px rgba(0,0,0,.15)',zIndex:'1000',maxWidth:'300px',fontSize:'14px',transform:'translateX(100%)',transition:'transform .3s ease'}); document.body.appendChild(n); setTimeout(()=>{ n.style.transform='translateX(0)'; },10); notificationTimeout=setTimeout(()=>{ n.style.transform='translateX(100%)'; setTimeout(()=>{ if(n.parentNode) n.parentNode.removeChild(n); },300); },4000); }
+function showError(m){ showNotification(m,'error'); }
+function showSuccess(m){ showNotification(m,'success'); }
+function addSuccessFlash(elm){ elm.classList.add('success-flash'); setTimeout(()=> elm.classList.remove('success-flash'),600); }
+function addLoadingState(elm){ elm.classList.add('loading'); }
+function removeLoadingState(elm){ elm.classList.remove('loading'); }
+function submitWithFeedback(form, fn){ addLoadingState(form); try{ const r=fn(); if(r instanceof Promise){ return r.finally(()=> removeLoadingState(form)); } removeLoadingState(form); return r; } catch(e){ removeLoadingState(form); throw e; } }
+function showInfo(m){ showNotification(m,'info'); }
+function requestDelete(task, cb){ let confirmDeletes=true; try{ const s=JSON.parse(localStorage.getItem('covey_settings')||'{}'); confirmDeletes = s.confirmDeletes !== false; }catch{} if(!confirmDeletes || confirm(`Delete "${task.title}"?`)){ try{ cb(); showSuccess('Task deleted'); } catch(e){ showError('Failed to delete task'); } } }
+function byId(id){ return document.getElementById(id); }
+function escapeHtml(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+el.saveSettings.onclick=()=>{ saveUserSettings(); showSuccess('Settings saved'); closeSettings(); };
+function __recordDelete(){}
+function loadSettingsIntoUI(){ try{ const s=JSON.parse(localStorage.getItem('covey_settings')||'{}'); if(el.fontSelect && s.fontFamily) el.fontSelect.value=s.fontFamily; if(el.confirmDeletes) el.confirmDeletes.checked = s.confirmDeletes !== false; if(el.enableAnimations) el.enableAnimations.checked = s.enableAnimations !== false; if(el.autoFocusInput) el.autoFocusInput.checked = s.autoFocusInput !== false; }catch{} }
+function isFirebaseReady(){ return !!(window.firebase && firebase.apps && firebase.apps.length && auth && db); }
 
-function showNotification(message, type = 'info') {
-  // Clear existing notification
-  if (notificationTimeout) {
-    clearTimeout(notificationTimeout);
-  }
-  
-  // Remove existing notifications
-  const existing = document.querySelector('.notification');
-  if (existing) existing.remove();
-  
-  // Create notification
-  const notification = document.createElement('div');
-  notification.className = `notification notification-${type}`;
-  notification.textContent = message;
-  notification.setAttribute('role', 'alert');
-  notification.setAttribute('aria-live', 'polite');
-  
-  // Add styles for notification
-  Object.assign(notification.style, {
-    position: 'fixed',
-    top: '20px',
-    right: '20px',
-    background: type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#2563eb',
-    color: 'white',
-    padding: '12px 20px',
-    borderRadius: '8px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-    zIndex: '1000',
-    maxWidth: '300px',
-    fontSize: '14px',
-    transform: 'translateX(100%)',
-    transition: 'transform 0.3s ease'
-  });
-  
-  document.body.appendChild(notification);
-  
-  // Animate in
-  setTimeout(() => {
-    notification.style.transform = 'translateX(0)';
-  }, 10);
-  
-  // Auto-hide after 4 seconds
-  notificationTimeout = setTimeout(() => {
-    notification.style.transform = 'translateX(100%)';
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.parentNode.removeChild(notification);
-      }
-    }, 300);
-  }, 4000);
-}
+// Cloud sync (debounced push)
+let pushTimer=null;
+function queueUpload(force=false){ if(!currentUser || !db) return; const push=async()=>{ try{ lastPushedAt = Date.now(); await userDocRef(currentUser.uid).set({ tasks, updatedAt:lastPushedAt }, { merge:true }); } catch(e){ console.error('Sync push failed:',e); showError('Cloud sync failed. Will retry.'); } }; if(force){ clearTimeout(pushTimer); push(); } else { clearTimeout(pushTimer); pushTimer=setTimeout(push, 400); } }
 
-function showError(message) {
-  showNotification(message, 'error');
-}
+/* ========= Modal helpers ========= */
+function openSettings(){ modal.style.display='flex'; modal.setAttribute('aria-hidden','false'); loadSettingsIntoUI(); buildSwatches(); setTimeout(()=>{ const first=modal.querySelector('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])'); if(first) first.focus(); },100); }
+function closeSettings(){ modal.style.display='none'; modal.setAttribute('aria-hidden','true'); el.settingsBtn.focus(); }
 
-function showSuccess(message) {
-  showNotification(message, 'success');
-}
+/* ========= Global error guards ========= */
+window.addEventListener('error', (event)=>{ console.error('Global error:', event.error); const msg=event.error?.message || event.message || 'An unexpected error occurred'; if(msg.includes('Firebase')){ console.warn('Firebase not fully configured'); return; } showError(`Error: ${msg}`); });
+window.addEventListener('unhandledrejection', (event)=>{ console.error('Unhandled rejection:', event.reason); const msg=event.reason?.message || event.reason?.code || 'Operation failed'; if(typeof event.reason==='string' && event.reason.includes('Firebase')){ console.warn('Firebase not fully configured'); return; } showError(`Error: ${msg}`); });
 
-/* ========= Visual Feedback Helpers ========= */
-function addSuccessFlash(element) {
-  element.classList.add('success-flash');
-  setTimeout(() => {
-    element.classList.remove('success-flash');
-  }, 600);
-}
-
-function addLoadingState(element) {
-  element.classList.add('loading');
-}
-
-function removeLoadingState(element) {
-  element.classList.remove('loading');
-}
-
-// Enhanced form submission with loading state
-function submitWithFeedback(formElement, submitFunction) {
-  addLoadingState(formElement);
-  try {
-    const result = submitFunction();
-    if (result instanceof Promise) {
-      return result.finally(() => removeLoadingState(formElement));
-    } else {
-      removeLoadingState(formElement);
-      return result;
-    }
-  } catch (error) {
-    removeLoadingState(formElement);
-    throw error;
-  }
-}
-
-function showInfo(message) {
-  showNotification(message, 'info');
-}
-
-/* ========= Enhanced Confirmation Dialogs ========= */
-function requestDelete(task, callback) {
-  let shouldConfirm = true; // Default to confirming deletes
-  
-  try {
-    const settings = JSON.parse(localStorage.getItem('covey_settings') || '{}');
-    shouldConfirm = settings.confirmDeletes !== false;
-  } catch(error) {
-    console.warn('Could not access settings (incognito mode?), using default confirmation:', error);
-  }
-  
-  if (!shouldConfirm || confirm(`Are you sure you want to delete "${task.title}"?\n\nThis action cannot be undone.`)) {
-    try {
-      callback();
-      showSuccess('Task deleted successfully');
-    } catch(error) {
-      console.error('Error deleting task:', error);
-      showError('Failed to delete task. Please try again.');
-    }
-  }
-}
-
-/* ========= Missing function declarations ========= */
-function byId(id) { return document.getElementById(id); }
-function escapeHtml(text) { 
-  const div = document.createElement('div'); 
-  div.textContent = text; 
-  return div.innerHTML; 
-}
-// Save button handler
-el.saveSettings.onclick = ()=>{ 
-  saveUserSettings(); 
-  showSuccess('Settings saved successfully!'); 
-  closeSettings(); 
-};
-function queueUpload() {
-  // Placeholder for sync functionality
-}
-function __recordDelete() {
-  // Placeholder for analytics
-}
-function loadSettingsIntoUI() {
-  try {
-    // Load settings into the UI when modal opens
-    const settings = JSON.parse(localStorage.getItem('covey_settings') || '{}');
-    
-    // Load font selection
-    if (el.fontSelect && settings.fontFamily) {
-      el.fontSelect.value = settings.fontFamily;
-    }
-    
-    // Load preferences
-    if (el.confirmDeletes) el.confirmDeletes.checked = settings.confirmDeletes !== false;
-    if (el.enableAnimations) el.enableAnimations.checked = settings.enableAnimations !== false;
-    if (el.autoFocusInput) el.autoFocusInput.checked = settings.autoFocusInput !== false;
-  } catch(error) {
-    console.warn('Could not load settings into UI (incognito mode?):', error);
-    // Use default settings if localStorage fails
-  }
-}
-
-// Firebase readiness check
-function isFirebaseReady() {
-  return !!(window.firebase && firebase.apps && firebase.apps.length && auth);
-}
-
-// Global error handler - more specific error messages
-window.addEventListener('error', (event) => {
-  console.error('Global error:', event.error);
-  const errorMessage = event.error?.message || event.message || 'An unexpected error occurred';
-  
-  // Don't show Firebase config errors to users - they're expected in this setup
-  if (errorMessage.includes('No Firebase App') || errorMessage.includes('Firebase')) {
-    console.warn('Firebase not configured - some features disabled');
-    return;
-  }
-  
-  showError(`Error: ${errorMessage}. Please refresh if issues persist.`);
-});
-
-window.addEventListener('unhandledrejection', (event) => {
-  console.error('Unhandled promise rejection:', event.reason);
-  const errorMessage = event.reason?.message || event.reason?.code || 'Operation failed';
-  
-  // Don't show Firebase config errors to users
-  if (typeof event.reason === 'string' && (event.reason.includes('No Firebase App') || event.reason.includes('Firebase'))) {
-    console.warn('Firebase not configured - some features disabled');
-    return;
-  }
-  
-  showError(`Error: ${errorMessage}. Please try again.`);
-});
-
-// Initialize
-try {
+/* ========= Init ========= */
+try{
   initAccent();
-  loadUserSettings(); // Load user preferences
-  
-  // Initialize Firebase when ready
-  if (typeof firebase !== 'undefined') {
-    initializeFirebase();
-  } else {
-    // Wait for Firebase SDK to load (since it's deferred)
-    window.addEventListener('load', () => {
-      setTimeout(() => {
-        if (typeof firebase !== 'undefined') {
-          initializeFirebase();
-        }
-      }, 100);
-    });
-  }
-  
-  // Initial render with all sections
-  markForUpdate(['step1', 'step2', 'step3']);
-  renderState.suggestions = true;
+  loadUserSettings();
+  if(typeof firebase !== 'undefined'){ initializeFirebase(); }
+  else { window.addEventListener('load', ()=>{ setTimeout(()=>{ if(typeof firebase!=='undefined'){ initializeFirebase(); } },100); }); }
+  markForUpdate(['step1','step2','step3']);
+  renderState.suggestions=true;
   render();
   showInfo('Welcome to Covey To-Do!');
-} catch(error) {
-  console.error('Initialization error:', error);
-  // Only show initialization errors that aren't Firebase-related
-  if (!error.message?.includes('Firebase') && !error.message?.includes('No Firebase App')) {
-    showError(`Initialization error: ${error.message}. Please refresh the page.`);
-  }
-}
+} catch(e){ console.error('Initialization error:', e); if(!e.message?.includes('Firebase')){ showError(`Initialization error: ${e.message}`); } }
 </script>
-
 </body>
 </html>
