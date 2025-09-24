@@ -373,7 +373,7 @@ let unsubscribe = null;
 let lastPushedAt = 0;
 
 // Performance render flags
-let renderState = { step1:true, step2:true, step3:true, step4:true, suggestions:true };
+let renderState = { step1:true, step2:true, step3:true, suggestions:true };
 
 function debounce(func, wait){ let timeout; return function(...args){ clearTimeout(timeout); timeout=setTimeout(()=>func.apply(this,args), wait); }; }
 
@@ -393,12 +393,12 @@ let el = {};
 
 // Initialize DOM references when page loads
 document.addEventListener('DOMContentLoaded', function() {
-  el = { step1:byId('step1'), step2:byId('step2'), step3:byId('step3'), step4:byId('step4'),
-    step1Btn:byId('step1Btn'), step2Btn:byId('step2Btn'), step3Btn:byId('step3Btn'), step4Btn:byId('step4Btn'),
+  el = { step1:byId('step1'), step2:byId('step2'), step3:byId('step3'),
+    step1Btn:byId('step1Btn'), step2Btn:byId('step2Btn'), step3Btn:byId('step3Btn'),
     addForm:byId('addForm'), taskInput:byId('taskInput'), inboxList:byId('inboxList'),
     listQ1:byId('listQ1'), listQ2:byId('listQ2'), listQ3:byId('listQ3'), listQ4:byId('listQ4'),
     categoriseBox:byId('categoriseBox'), prioritiseBox:byId('prioritiseBox'), suggestions:byId('suggestions'),
-    showCompleted:byId('showCompleted'), clearBtn:byId('clearBtn'), currentList:byId('currentList'),
+    showCompleted:byId('showCompleted'), clearBtn:byId('clearBtn'),
     settingsBtn:byId('settingsBtn'), settingsModal:byId('settingsModal'), closeSettings:byId('closeSettings'),
     signInBtn:byId('signInBtn'), signInModal:byId('signInModal'), closeSignIn:byId('closeSignIn'),
     signInForm:byId('signInForm'), emailInput:byId('emailInput'), passwordInput:byId('passwordInput'),
@@ -414,13 +414,12 @@ document.addEventListener('DOMContentLoaded', function() {
   el.step1Btn.onclick=()=> setStep(1);
   el.step2Btn.onclick=()=> setStep(2);
   el.step3Btn.onclick=()=> setStep(3);
-  el.step4Btn.onclick=()=> setStep(4);
   
   // Initialize other event handlers that depend on DOM elements
   initializeEventHandlers();
   
   // Check for missing critical elements
-  const critical = ['step1', 'step2', 'step3', 'step4', 'prioritiseBox', 'categoriseBox', 'addForm', 'taskInput', 'inboxList'];
+  const critical = ['step1', 'step2', 'step3', 'prioritiseBox', 'categoriseBox', 'addForm', 'taskInput', 'inboxList'];
   const missing = critical.filter(key => !el[key]);
   if (missing.length > 0) {
     console.error('Missing critical DOM elements:', missing);
@@ -440,7 +439,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Initial render
-  markForUpdate(['step1','step2','step3','step4']);
+  markForUpdate(['step1','step2','step3']);
   renderState.suggestions=true;
   render();
   
@@ -473,7 +472,7 @@ function buildSwatches(){ el.accentSwatches.innerHTML=''; PRESET_ACCENTS.forEach
 
 
 /* ========= Step nav ========= */
-function setStep(n){ if(step===n) return; step=n; const secs=[el.step1,el.step2,el.step3,el.step4]; const btns=[el.step1Btn,el.step2Btn,el.step3Btn,el.step4Btn]; secs.forEach((sec,i)=>{ if(i===n-1){ sec.classList.add('active'); sec.setAttribute('aria-hidden','false'); } else { sec.classList.remove('active'); sec.setAttribute('aria-hidden','true'); } }); btns.forEach((b,i)=>{ if(i===n-1){ b.className='btn pill primary'; b.setAttribute('aria-selected','true'); b.setAttribute('tabindex','0'); } else { b.className='btn pill ghost'; b.setAttribute('aria-selected','false'); b.setAttribute('tabindex','-1'); } }); const update={}; update[`step${n}`]=true; render(update); }
+function setStep(n){ if(step===n) return; step=n; const secs=[el.step1,el.step2,el.step3]; const btns=[el.step1Btn,el.step2Btn,el.step3Btn]; secs.forEach((sec,i)=>{ if(i===n-1){ sec.classList.add('active'); sec.setAttribute('aria-hidden','false'); } else { sec.classList.remove('active'); sec.setAttribute('aria-hidden','true'); } }); btns.forEach((b,i)=>{ if(i===n-1){ b.className='btn pill primary'; b.setAttribute('aria-selected','true'); b.setAttribute('tabindex','0'); } else { b.className='btn pill ghost'; b.setAttribute('aria-selected','false'); b.setAttribute('tabindex','-1'); } }); const update={}; update[`step${n}`]=true; render(update); }
 
 /* ========= Event Handlers Initialization ========= */
 function initializeEventHandlers() {
@@ -506,8 +505,8 @@ function initializeEventHandlers() {
   if (el.fontSelect) el.fontSelect.onchange = () => applyFont(el.fontSelect.value);
   
   // Current list controls
-  if (el.showCompleted) el.showCompleted.onchange=()=>{ showCompleted=el.showCompleted.checked; markForUpdate(['step4']); render(); };
-  if (el.clearBtn) el.clearBtn.onclick=()=>{ const n=tasks.length; if(n===0){ showInfo('No tasks to clear'); return; } if(confirm(`Delete all ${n} tasks? This cannot be undone.`)){ addLoadingState(el.clearBtn); try{ tasks=[]; saveLocal(); queueUpload(true); markForUpdate(['step1','step2','step3','step4']); renderState.suggestions=true; render(); showSuccess(`Cleared ${n} tasks`); } finally { removeLoadingState(el.clearBtn); } } };
+  if (el.showCompleted) el.showCompleted.onchange=()=>{ showCompleted=el.showCompleted.checked; markForUpdate(['step3']); render(); };
+  if (el.clearBtn) el.clearBtn.onclick=()=>{ const n=tasks.length; if(n===0){ showInfo('No tasks to clear'); return; } if(confirm(`Delete all ${n} tasks? This cannot be undone.`)){ addLoadingState(el.clearBtn); try{ tasks=[]; saveLocal(); queueUpload(true); markForUpdate(['step1','step2','step3']); renderState.suggestions=true; render(); showSuccess(`Cleared ${n} tasks`); } finally { removeLoadingState(el.clearBtn); } } };
   
   // Import/Export
   if (el.exportData) el.exportData.onclick=()=> exportTasks();
@@ -539,13 +538,11 @@ function render(forceUpdate={}){
   if(should.step1){ renderStep1(); renderState.step1=false; renderState.suggestions=false; } 
   if(should.step2){ renderStep2(); renderState.step2=false; } 
   if(should.step3){ renderStep3(); renderState.step3=false; } 
-  if(should.step4){ renderStep4(); renderState.step4=false; } 
   if(should.suggestions && !should.step1){ renderSuggestions(); renderState.suggestions=false; } 
 }
 function renderStep1(){ const unc=inbox(false); updateList(el.inboxList, unc, {showQuadrant:false}, 'No tasks'); renderSuggestions(); }
 function renderStep2(){ const g=groups(true); const current=inbox(false)[0]; updateCategoriseBox(current); mountQuadrantList(el.listQ1,g.Q1,'Q1'); mountQuadrantList(el.listQ2,g.Q2,'Q2'); mountQuadrantList(el.listQ3,g.Q3,'Q3'); mountQuadrantList(el.listQ4,g.Q4,'Q4'); }
 function renderStep3(){ renderPrioritise(); }
-function renderStep4(){ const all=allSortedByPriority(showCompleted); updateList(el.currentList, all, {showQuadrant:true}, 'No tasks'); el.showCompleted.checked=showCompleted; }
 
 // Priority calculation and sorting
 function calculatePriority(task) {
@@ -568,11 +565,16 @@ let currentPriorityTask = null;
 let priorityQuestionType = null; // 'urgency' or 'importance'
 
 function renderPrioritise() {
-  const categorized = tasks.filter(t => t.quadrant);
+  const categorized = tasks.filter(t => t.quadrant && (showCompleted || !t.completed));
   
   if (!el.prioritiseBox) {
     console.error('prioritiseBox element not found!');
     return;
+  }
+  
+  // Update show completed checkbox state
+  if (el.showCompleted) {
+    el.showCompleted.checked = showCompleted;
   }
   
   if (!categorized.length) {
@@ -662,8 +664,9 @@ function renderPrioritise() {
       
       taskDiv.innerHTML = `
         <div style="display: flex; align-items: center; gap: 12px;">
+          <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTaskCompletion('${task.id}')" style="accent-color: var(--accent); margin: 0;">
           <div style="flex: 1;">
-            <div class="title" style="margin-bottom: 4px; font-weight: 600;">${escapeHtml(task.title)}</div>
+            <div class="title ${task.completed ? 'strike' : ''}" style="margin-bottom: 4px; font-weight: 600;">${escapeHtml(task.title)}</div>
             <div style="font-size: 12px; color: var(--muted);">
               Priority Score: ${priority} (U:${task.urgency || 5} × I:${task.importance || 5})
             </div>
@@ -760,7 +763,7 @@ function setPriorityRating(rating) {
       // All tasks prioritized, show the grid view
       currentPriorityTask = null;
       priorityQuestionType = null;
-      markForUpdate(['step3', 'step4']);
+      markForUpdate(['step3']);
       render();
       showSuccess('All tasks prioritized!');
     }
@@ -827,7 +830,7 @@ function handleDrop(e) {
       
       saveLocal();
       queueUpload();
-      markForUpdate(['step2', 'step3', 'step4']);
+      markForUpdate(['step2', 'step3']);
       render();
       
       showSuccess(`Moved task to ${newQuadrant}`);
@@ -852,9 +855,23 @@ function updateTaskScore(taskId, type, value) {
   saveLocal();
   queueUpload();
   setTimeout(() => {
-    markForUpdate(['step3', 'step4']);
+    markForUpdate(['step3']);
     render();
   }, 100);
+}
+
+// Task completion toggle function
+function toggleTaskCompletion(taskId) {
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
+  
+  task.completed = !task.completed;
+  task.updatedAt = nowMs();
+  
+  saveLocal();
+  queueUpload();
+  markForUpdate(['step3']);
+  render();
 }
 function renderSuggestions(){ const sugg=computeSuggestions(); el.suggestions.innerHTML=''; const frag=document.createDocumentFragment(); sugg.forEach(s=>{ const b=document.createElement('button'); b.className='chip'; b.type='button'; b.textContent=s; b.onclick=()=>applySuggestion(s); frag.appendChild(b); }); el.suggestions.appendChild(frag); }
 function updateList(container, items, opts, emptyMsg){ if(!items.length){ const li=document.createElement('li'); li.className='empty-state'; li.setAttribute('role','listitem'); li.setAttribute('aria-live','polite'); li.innerHTML=`<p>${escapeHtml(emptyMsg)}</p>`; container.innerHTML=''; container.appendChild(li); return; } const frag=document.createDocumentFragment(); items.forEach(item=> frag.appendChild(rowItem(item,opts))); container.innerHTML=''; container.appendChild(frag); }
