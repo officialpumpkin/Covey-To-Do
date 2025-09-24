@@ -571,6 +571,10 @@ function allSortedByPriority(includeCompleted) {
   });
 }
 
+// Priority state for question-based interface
+let currentPriorityTask = null;
+let priorityQuestionType = null; // 'urgency' or 'importance'
+
 function renderPrioritise() {
   const categorized = tasks.filter(t => t.quadrant);
   
@@ -584,53 +588,264 @@ function renderPrioritise() {
     return;
   }
 
-  const sortedTasks = categorized.sort((a, b) => calculatePriority(b) - calculatePriority(a));
+  // Group tasks by quadrant in Q1, Q2, Q3, Q4 order
+  const groups = {
+    Q1: categorized.filter(t => t.quadrant === 'Q1').sort((a, b) => calculatePriority(b) - calculatePriority(a)),
+    Q2: categorized.filter(t => t.quadrant === 'Q2').sort((a, b) => calculatePriority(b) - calculatePriority(a)),
+    Q3: categorized.filter(t => t.quadrant === 'Q3').sort((a, b) => calculatePriority(b) - calculatePriority(a)),
+    Q4: categorized.filter(t => t.quadrant === 'Q4').sort((a, b) => calculatePriority(b) - calculatePriority(a))
+  };
+
+  // Check if we need to show priority rating interface
+  const unprioritized = categorized.find(t => !t.urgency || !t.importance || t.urgency === 5 && t.importance === 5);
+  
+  if (unprioritized && !currentPriorityTask) {
+    currentPriorityTask = unprioritized;
+    priorityQuestionType = 'urgency';
+  }
+
+  if (currentPriorityTask) {
+    renderPriorityQuestion();
+    return;
+  }
   
   el.prioritiseBox.innerHTML = '';
   const frag = document.createDocumentFragment();
-  
-  sortedTasks.forEach((task, index) => {
-    const priority = calculatePriority(task);
-    const div = document.createElement('div');
-    div.className = 'task';
-    div.style.cssText = 'border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px;background:var(--card)';
+
+  // Render quadrant sections in Q1-Q4 order
+  ['Q1', 'Q2', 'Q3', 'Q4'].forEach(quadrant => {
+    const quadrantTasks = groups[quadrant];
+    if (quadrantTasks.length === 0) return;
+
+    const section = document.createElement('div');
+    section.className = 'priority-quadrant';
+    section.dataset.quadrant = quadrant;
     
-    div.innerHTML = `
-      <div style="display:flex;align-items:center;gap:16px;margin-bottom:12px">
-        <div style="flex:1">
-          <div class="title" style="margin-bottom:4px">${escapeHtml(task.title)}</div>
-          <div style="font-size:12px;color:var(--muted)">Q${task.quadrant[1]} • Priority Score: ${priority}</div>
-        </div>
-        <div style="font-weight:600;font-size:18px;color:var(--accent)">#${index + 1}</div>
-      </div>
-      
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <div>
-          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">
-            Urgency: <span id="urgency-value-${task.id}">${task.urgency || 5}</span>/10
-          </label>
-          <input type="range" min="1" max="10" value="${task.urgency || 5}" 
-                 id="urgency-${task.id}" 
-                 style="width:100%;accent-color:var(--accent)"
-                 onchange="updateTaskScore('${task.id}', 'urgency', this.value)">
-        </div>
-        
-        <div>
-          <label style="display:block;font-size:13px;font-weight:600;margin-bottom:6px">
-            Importance: <span id="importance-value-${task.id}">${task.importance || 5}</span>/10
-          </label>
-          <input type="range" min="1" max="10" value="${task.importance || 5}" 
-                 id="importance-${task.id}" 
-                 style="width:100%;accent-color:var(--accent)"
-                 onchange="updateTaskScore('${task.id}', 'importance', this.value)">
-        </div>
-      </div>
+    // Set background colors matching categorization page
+    const bgColors = {
+      Q1: 'rgba(239,68,68,.08)',
+      Q2: 'rgba(16,185,129,.08)', 
+      Q3: 'rgba(245,158,11,.08)',
+      Q4: 'rgba(99,102,241,.08)'
+    };
+    
+    const titles = {
+      Q1: 'Q1 · Urgent + Important',
+      Q2: 'Q2 · Not Urgent + Important', 
+      Q3: 'Q3 · Urgent + Not Important',
+      Q4: 'Q4 · Not Urgent + Not Important'
+    };
+    
+    section.style.cssText = `
+      background: ${bgColors[quadrant]};
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
     `;
     
-    frag.appendChild(div);
+    section.innerHTML = `
+      <h3 class="sec-title" style="margin-bottom: 12px; font-size: 13.5px; font-weight: 800;">${titles[quadrant]}</h3>
+      <div class="priority-task-list" data-quadrant="${quadrant}"></div>
+    `;
+    
+    const taskList = section.querySelector('.priority-task-list');
+    
+    quadrantTasks.forEach((task, index) => {
+      const priority = calculatePriority(task);
+      const taskDiv = document.createElement('div');
+      taskDiv.className = 'priority-task';
+      taskDiv.dataset.taskId = task.id;
+      taskDiv.draggable = true;
+      
+      taskDiv.style.cssText = `
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 8px;
+        background: var(--card);
+        cursor: move;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      `;
+      
+      taskDiv.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="flex: 1;">
+            <div class="title" style="margin-bottom: 4px; font-weight: 600;">${escapeHtml(task.title)}</div>
+            <div style="font-size: 12px; color: var(--muted);">
+              Priority Score: ${priority} (U:${task.urgency || 5} × I:${task.importance || 5})
+            </div>
+          </div>
+          <div style="font-weight: 600; font-size: 16px; color: var(--accent);">#${index + 1}</div>
+          <button class="btn pill ghost" onclick="editTaskPriority('${task.id}')" style="padding: 4px 8px; font-size: 11px;">Edit</button>
+        </div>
+      `;
+      
+      // Add drag and drop event listeners
+      taskDiv.addEventListener('dragstart', handleDragStart);
+      taskDiv.addEventListener('dragover', handleDragOver);
+      taskDiv.addEventListener('drop', handleDrop);
+      taskDiv.addEventListener('dragenter', handleDragEnter);
+      taskDiv.addEventListener('dragleave', handleDragLeave);
+      
+      taskList.appendChild(taskDiv);
+    });
+    
+    frag.appendChild(section);
   });
   
   el.prioritiseBox.appendChild(frag);
+}
+
+// Question-based priority rating interface
+function renderPriorityQuestion() {
+  if (!currentPriorityTask) return;
+  
+  const questionText = priorityQuestionType === 'urgency' 
+    ? 'How urgent is this task?' 
+    : 'How important is this task?';
+    
+  const subText = priorityQuestionType === 'urgency'
+    ? 'How time-sensitive is this? Does it need immediate attention?'
+    : 'How critical is this to your goals? Would missing this significantly impact you?';
+  
+  el.prioritiseBox.innerHTML = `
+    <div style="text-align: center; padding: 20px;">
+      <div class="sec-title" style="margin-bottom: 20px;">${questionText}</div>
+      <div class="task" style="margin: 16px auto; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+        <div class="title">${escapeHtml(currentPriorityTask.title)}</div>
+      </div>
+      <p style="color: var(--muted); font-size: 14px; margin: 16px 0 24px;">${subText}</p>
+      
+      <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; max-width: 500px; margin: 0 auto 20px;">
+        ${Array.from({length: 10}, (_, i) => {
+          const rating = i + 1;
+          return `<button class="btn pill priority-rating-btn" data-rating="${rating}" onclick="setPriorityRating(${rating})" style="min-height: 44px; font-weight: 700; font-size: 16px;">${rating}</button>`;
+        }).join('')}
+      </div>
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+        <span style="font-size: 12px; color: var(--muted);">1 = Very Low</span>
+        <span style="font-size: 12px; color: var(--muted);">10 = Very High</span>
+      </div>
+      
+      ${priorityQuestionType === 'importance' ? `
+        <div style="margin-top: 20px;">
+          <button class="btn pill ghost" onclick="goBackToPriorityRating()" style="margin-right: 8px;">Back</button>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function setPriorityRating(rating) {
+  if (!currentPriorityTask) return;
+  
+  currentPriorityTask[priorityQuestionType] = rating;
+  currentPriorityTask.updatedAt = nowMs();
+  
+  if (priorityQuestionType === 'urgency') {
+    // Move to importance question
+    priorityQuestionType = 'importance';
+    renderPriorityQuestion();
+  } else {
+    // Finished rating this task
+    saveLocal();
+    queueUpload();
+    
+    // Find next task to prioritize
+    const categorized = tasks.filter(t => t.quadrant);
+    const nextUnprioritized = categorized.find(t => 
+      t.id !== currentPriorityTask.id && 
+      (!t.urgency || !t.importance || (t.urgency === 5 && t.importance === 5))
+    );
+    
+    if (nextUnprioritized) {
+      currentPriorityTask = nextUnprioritized;
+      priorityQuestionType = 'urgency';
+      renderPriorityQuestion();
+    } else {
+      // All tasks prioritized, show the grid view
+      currentPriorityTask = null;
+      priorityQuestionType = null;
+      markForUpdate(['step3', 'step4']);
+      render();
+      showSuccess('All tasks prioritized!');
+    }
+  }
+}
+
+function goBackToPriorityRating() {
+  priorityQuestionType = 'urgency';
+  renderPriorityQuestion();
+}
+
+function editTaskPriority(taskId) {
+  const task = tasks.find(t => t.id === taskId);
+  if (!task) return;
+  
+  currentPriorityTask = task;
+  priorityQuestionType = 'urgency';
+  renderPriorityQuestion();
+}
+
+// Drag and drop functionality
+let draggedElement = null;
+
+function handleDragStart(e) {
+  draggedElement = e.target;
+  e.target.style.opacity = '0.5';
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/html', e.target.outerHTML);
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+}
+
+function handleDragEnter(e) {
+  e.preventDefault();
+  if (e.target.classList.contains('priority-task-list')) {
+    e.target.style.background = 'rgba(var(--accent-rgb), 0.1)';
+  }
+}
+
+function handleDragLeave(e) {
+  if (e.target.classList.contains('priority-task-list')) {
+    e.target.style.background = '';
+  }
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  
+  if (e.target.classList.contains('priority-task-list')) {
+    e.target.style.background = '';
+    
+    const newQuadrant = e.target.dataset.quadrant;
+    const taskId = draggedElement.dataset.taskId;
+    const task = tasks.find(t => t.id === taskId);
+    
+    if (task && newQuadrant && task.quadrant !== newQuadrant) {
+      // Update task quadrant
+      task.quadrant = newQuadrant;
+      task.updatedAt = nowMs();
+      task.rank = null; // Reset rank in new quadrant
+      
+      saveLocal();
+      queueUpload();
+      markForUpdate(['step2', 'step3', 'step4']);
+      render();
+      
+      showSuccess(`Moved task to ${newQuadrant}`);
+    }
+  }
+  
+  if (draggedElement) {
+    draggedElement.style.opacity = '';
+    draggedElement = null;
+  }
 }
 
 function updateTaskScore(taskId, type, value) {
@@ -640,15 +855,6 @@ function updateTaskScore(taskId, type, value) {
   const numValue = parseInt(value);
   task[type] = numValue;
   task.updatedAt = nowMs();
-  
-  // Update the display value
-  const valueSpan = document.getElementById(`${type}-value-${taskId}`);
-  if (valueSpan) valueSpan.textContent = numValue;
-  
-  // Update priority score display
-  const priority = calculatePriority(task);
-  const priorityDisplay = task.parentElement?.querySelector('[style*="Priority Score"]');
-  if (priorityDisplay) priorityDisplay.textContent = `Q${task.quadrant[1]} • Priority Score: ${priority}`;
   
   // Save and re-render to update order
   saveLocal();
