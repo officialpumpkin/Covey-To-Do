@@ -396,20 +396,39 @@ function groups(includeCompleted){ const g={Q1:[],Q2:[],Q3:[],Q4:[]}; tasks.forE
 function allSorted(includeCompleted){ const g=groups(includeCompleted); return [...g.Q1,...g.Q2,...g.Q3,...g.Q4]; }
 
 /* ========= DOM refs ========= */
-const el = { step1:byId('step1'), step2:byId('step2'), step3:byId('step3'), step4:byId('step4'),
-  step1Btn:byId('step1Btn'), step2Btn:byId('step2Btn'), step3Btn:byId('step3Btn'), step4Btn:byId('step4Btn'),
-  addForm:byId('addForm'), taskInput:byId('taskInput'), inboxList:byId('inboxList'),
-  listQ1:byId('listQ1'), listQ2:byId('listQ2'), listQ3:byId('listQ3'), listQ4:byId('listQ4'),
-  categoriseBox:byId('categoriseBox'), prioritiseBox:byId('prioritiseBox'), suggestions:byId('suggestions'),
-  showCompleted:byId('showCompleted'), clearBtn:byId('clearBtn'), currentList:byId('currentList'),
-  settingsBtn:byId('settingsBtn'), settingsModal:byId('settingsModal'), closeSettings:byId('closeSettings'),
-  signInBtn:byId('signInBtn'), signInModal:byId('signInModal'), closeSignIn:byId('closeSignIn'),
-  signInForm:byId('signInForm'), emailInput:byId('emailInput'), passwordInput:byId('passwordInput'),
-  createAccountBtn:byId('createAccountBtn'), googleSignInBtn:byId('googleSignInBtn'), authStatus:byId('authStatus'), authStatusModal:byId('authStatusModal'),
-  saveSettings:byId('saveSettings'), accentSwatches:byId('accentSwatches'), accentCustom:byId('accentCustom'), accentApply:byId('accentApply'),
-  fontSelect:byId('fontSelect'), confirmDeletes:byId('confirmDeletes'), enableAnimations:byId('enableAnimations'), autoFocusInput:byId('autoFocusInput'),
-  exportData:byId('exportData'), importData:byId('importData'), importFile:byId('importFile') };
-byId('themeToggle').onclick = toggleTheme;
+let el = {};
+
+// Initialize DOM references when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  el = { step1:byId('step1'), step2:byId('step2'), step3:byId('step3'), step4:byId('step4'),
+    step1Btn:byId('step1Btn'), step2Btn:byId('step2Btn'), step3Btn:byId('step3Btn'), step4Btn:byId('step4Btn'),
+    addForm:byId('addForm'), taskInput:byId('taskInput'), inboxList:byId('inboxList'),
+    listQ1:byId('listQ1'), listQ2:byId('listQ2'), listQ3:byId('listQ3'), listQ4:byId('listQ4'),
+    categoriseBox:byId('categoriseBox'), prioritiseBox:byId('prioritiseBox'), suggestions:byId('suggestions'),
+    showCompleted:byId('showCompleted'), clearBtn:byId('clearBtn'), currentList:byId('currentList'),
+    settingsBtn:byId('settingsBtn'), settingsModal:byId('settingsModal'), closeSettings:byId('closeSettings'),
+    signInBtn:byId('signInBtn'), signInModal:byId('signInModal'), closeSignIn:byId('closeSignIn'),
+    signInForm:byId('signInForm'), emailInput:byId('emailInput'), passwordInput:byId('passwordInput'),
+    createAccountBtn:byId('createAccountBtn'), googleSignInBtn:byId('googleSignInBtn'), authStatus:byId('authStatus'), authStatusModal:byId('authStatusModal'),
+    saveSettings:byId('saveSettings'), accentSwatches:byId('accentSwatches'), accentCustom:byId('accentCustom'), accentApply:byId('accentApply'),
+    fontSelect:byId('fontSelect'), confirmDeletes:byId('confirmDeletes'), enableAnimations:byId('enableAnimations'), autoFocusInput:byId('autoFocusInput'),
+    exportData:byId('exportData'), importData:byId('importData'), importFile:byId('importFile') };
+  
+  // Set up event listeners
+  byId('themeToggle').onclick = toggleTheme;
+  
+  // Initialize step navigation
+  el.step1Btn.onclick=()=> setStep(1);
+  el.step2Btn.onclick=()=> setStep(2);
+  el.step3Btn.onclick=()=> setStep(3);
+  el.step4Btn.onclick=()=> setStep(4);
+  
+  // Initialize other event handlers that depend on DOM elements
+  initializeEventHandlers();
+  
+  // Initial render
+  render();
+});
 
 /* ========= Keyboard Navigation ========= */
 document.addEventListener('keydown', (e)=>{
@@ -433,25 +452,51 @@ function trapFocus(e, container){ const f=container.querySelectorAll('button,[hr
 /* ========= Accent UI ========= */
 const PRESET_ACCENTS=["#2563eb","#7c3aed","#db2777","#ef4444","#059669","#0ea5e9","#f59e0b","#111827"];
 function buildSwatches(){ el.accentSwatches.innerHTML=''; PRESET_ACCENTS.forEach(hex=>{ const b=document.createElement('button'); b.className='chip'; b.style.borderRadius='999px'; b.style.background=hex; b.style.color='#fff'; b.style.border='1px solid var(--border)'; b.style.minWidth='36px'; b.style.height='28px'; b.title=hex; b.type='button'; b.onclick=()=>{ applyAccent(hex); buildSwatches(); }; el.accentSwatches.appendChild(b); }); }
-el.accentApply.onclick=()=>{ applyAccent(el.accentCustom.value); buildSwatches(); };
+
 
 /* ========= Step nav ========= */
-el.step1Btn.onclick=()=> setStep(1);
-el.step2Btn.onclick=()=> setStep(2);
-el.step3Btn.onclick=()=> setStep(3);
-el.step4Btn.onclick=()=> setStep(4);
 function setStep(n){ if(step===n) return; step=n; const secs=[el.step1,el.step2,el.step3,el.step4]; const btns=[el.step1Btn,el.step2Btn,el.step3Btn,el.step4Btn]; secs.forEach((sec,i)=>{ if(i===n-1){ sec.classList.add('active'); sec.setAttribute('aria-hidden','false'); } else { sec.classList.remove('active'); sec.setAttribute('aria-hidden','true'); } }); btns.forEach((b,i)=>{ if(i===n-1){ b.className='btn pill primary'; b.setAttribute('aria-selected','true'); b.setAttribute('tabindex','0'); } else { b.className='btn pill ghost'; b.setAttribute('aria-selected','false'); b.setAttribute('tabindex','-1'); } }); const update={}; update[`step${n}`]=true; render(update); }
 
-/* ========= Add form ========= */
-el.addForm.onsubmit=(e)=>{ e.preventDefault(); const v=el.taskInput.value.trim(); if(!v){ showError('Please enter a task description'); el.taskInput.focus(); return; } if(v.length>200){ showError('Task description must be less than 200 characters'); el.taskInput.focus(); return; } if(tasks.some(t=> (t.title||'').toLowerCase()===v.toLowerCase())){ showError('A task with this description already exists'); el.taskInput.focus(); return; }
-  addLoadingState(el.addForm); try{ tasks.unshift({id:uid(), title:v, completed:false, quadrant:null, rank:null, urgency:5, importance:5, createdAt:nowMs(), updatedAt:nowMs()}); el.taskInput.value=''; saveLocal(); queueUpload(); markForUpdate(['step1']); renderState.suggestions=true; render(); removeLoadingState(el.addForm); addSuccessFlash(el.inboxList); showSuccess('Task added successfully'); setTimeout(()=> el.taskInput.focus(),100); }catch(err){ removeLoadingState(el.addForm); console.error(err); showError('Failed to add task.'); }
-};
-const debouncedSuggestionUpdate = debounce(()=>{ if(step===1){ renderState.suggestions=true; render({suggestions:true}); } }, 300);
-el.taskInput.addEventListener('input', debouncedSuggestionUpdate);
+/* ========= Event Handlers Initialization ========= */
+function initializeEventHandlers() {
+  // Add form
+  el.addForm.onsubmit=(e)=>{ e.preventDefault(); const v=el.taskInput.value.trim(); if(!v){ showError('Please enter a task description'); el.taskInput.focus(); return; } if(v.length>200){ showError('Task description must be less than 200 characters'); el.taskInput.focus(); return; } if(tasks.some(t=> (t.title||'').toLowerCase()===v.toLowerCase())){ showError('A task with this description already exists'); el.taskInput.focus(); return; }
+    addLoadingState(el.addForm); try{ tasks.unshift({id:uid(), title:v, completed:false, quadrant:null, rank:null, urgency:5, importance:5, createdAt:nowMs(), updatedAt:nowMs()}); el.taskInput.value=''; saveLocal(); queueUpload(); markForUpdate(['step1']); renderState.suggestions=true; render(); removeLoadingState(el.addForm); addSuccessFlash(el.inboxList); showSuccess('Task added successfully'); setTimeout(()=> el.taskInput.focus(),100); }catch(err){ removeLoadingState(el.addForm); console.error(err); showError('Failed to add task.'); }
+  };
+  
+  const debouncedSuggestionUpdate = debounce(()=>{ if(step===1){ renderState.suggestions=true; render({suggestions:true}); } }, 300);
+  el.taskInput.addEventListener('input', debouncedSuggestionUpdate);
+  
+  // Accent controls
+  
+  
+  // Settings
+  
+  el.settingsBtn.onclick=()=> openSettings();
+  el.closeSettings.onclick=()=> closeSettings();
+  
+  // Authentication
+  el.signInBtn.onclick=()=> openSignIn();
+  el.closeSignIn.onclick=()=> closeSignIn();
+  
+  // Font selection
+  el.fontSelect.onchange = () => applyFont(el.fontSelect.value);
+  
+  // Current list controls
+  el.showCompleted.onchange=()=>{ showCompleted=el.showCompleted.checked; markForUpdate(['step4']); render(); };
+  el.clearBtn.onclick=()=>{ const n=tasks.length; if(n===0){ showInfo('No tasks to clear'); return; } if(confirm(`Delete all ${n} tasks? This cannot be undone.`)){ addLoadingState(el.clearBtn); try{ tasks=[]; saveLocal(); queueUpload(true); markForUpdate(['step1','step2','step3','step4']); renderState.suggestions=true; render(); showSuccess(`Cleared ${n} tasks`); } finally { removeLoadingState(el.clearBtn); } } };
+  
+  // Import/Export
+  el.exportData.onclick=()=> exportTasks();
+  el.importData.onclick=()=> el.importFile.click();
+  el.importFile.onchange=(e)=> importTasks(e.target.files[0]);
+  
+  // Sign in form
+  el.signInForm.onsubmit=(e)=>{ e.preventDefault(); if(!isFirebaseReady()){ showError('Cloud sync not configured - sign in disabled'); return; } const email=el.emailInput.value.trim(); const password=el.passwordInput.value; if(!email||!password){ showError('Enter email and password'); return; } signInWithEmail(email,password); };
+  el.createAccountBtn.onclick=()=>{ if(!isFirebaseReady()){ showError('Cloud sync not configured - account creation disabled'); return; } const email=el.emailInput.value.trim(); const password=el.passwordInput.value; if(!email||!password){ showError('Enter email and password'); return; } if(password.length<6){ showError('Password must be at least 6 characters'); return; } createAccount(email,password); };
+  el.googleSignInBtn.onclick=()=>{ if(!isFirebaseReady()){ showError('Cloud sync not configured - Google sign in disabled'); return; } signInWithGoogle(); };
+}
 
-/* ========= Current list controls ========= */
-el.showCompleted.onchange=()=>{ showCompleted=el.showCompleted.checked; markForUpdate(['step3']); render(); };
-el.clearBtn.onclick=()=>{ const n=tasks.length; if(n===0){ showInfo('No tasks to clear'); return; } if(confirm(`Delete all ${n} tasks? This cannot be undone.`)){ addLoadingState(el.clearBtn); try{ tasks=[]; saveLocal(); queueUpload(true); markForUpdate(['step1','step2','step3']); renderState.suggestions=true; render(); showSuccess(`Cleared ${n} tasks`); } finally { removeLoadingState(el.clearBtn); } } };
 
 /* ========= Suggestions ========= */
 function computeSuggestions(){ try{ const verbs=new Map(); for(const t of tasks){ const title=t.title||''; const w=title.split(/\s+/)[0]?.toLowerCase()||''; if(!w) continue; verbs.set(w,(verbs.get(w)||0)+1); } const common=Array.from(verbs.entries()).sort((a,b)=>b[1]-a[1]).map(([w])=>w).filter(w=>w.length>2); const base=["Plan","Book","Email","Call","Review","Draft","Schedule","Organise"]; const pool=[...new Set([...common,...base])].slice(0,8); return pool.map(v=> v.charAt(0).toUpperCase()+v.slice(1)+' …'); }catch(e){ return ["Plan …","Email …","Call …","Review …"]; } }
@@ -603,16 +648,9 @@ function createQuadrantListItem(t,key){ const li=document.createElement('li'); l
 
 /* ========= Settings modal ========= */
 const modal=document.getElementById('settingsModal');
-byId('settingsBtn').onclick=()=> openSettings();
-byId('closeSettings').onclick=()=> closeSettings();
 
-// Font selection event handler
-el.fontSelect.onchange = () => applyFont(el.fontSelect.value);
 
 function applyFont(f){ document.documentElement.style.setProperty('--font-family', f); saveUserSettings(); }
-el.exportData.onclick=()=> exportTasks();
-el.importData.onclick=()=> el.importFile.click();
-el.importFile.onchange=(e)=> importTasks(e.target.files[0]);
 function exportTasks(){ const data={ tasks, settings: JSON.parse(localStorage.getItem('covey_settings')||'{}'), exported:new Date().toISOString() }; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`covey-todo-${new Date().toISOString().split('T')[0]}.json`; a.click(); URL.revokeObjectURL(url); showSuccess('Tasks exported'); }
 function importTasks(file){ if(!file) return; const r=new FileReader(); r.onload=(e)=>{ try{ const data=JSON.parse(e.target.result); if(data.tasks && Array.isArray(data.tasks)){ if(confirm(`Import ${data.tasks.length} tasks? This will replace your current tasks.`)){ tasks=data.tasks; saveLocal(); queueUpload(); markForUpdate(['step1','step2','step3']); renderState.suggestions=true; render(); showSuccess(`Imported ${data.tasks.length} tasks`); } } else { showError('Invalid file format'); } } catch(err){ console.error('Import error:',err); showError('Failed to import tasks'); } }; r.readAsText(file); el.importFile.value=''; }
 function saveUserSettings(){ try{ const s={ fontFamily: el.fontSelect?.value || 'system-ui, -apple-system, \'Segoe UI\', Roboto, Inter, Arial, sans-serif', confirmDeletes: el.confirmDeletes?.checked !== false, enableAnimations: el.enableAnimations?.checked !== false, autoFocusInput: el.autoFocusInput?.checked !== false }; localStorage.setItem('covey_settings', JSON.stringify(s)); }catch(e){ console.warn('Could not save settings:', e); }}
@@ -674,9 +712,6 @@ function createAccount(email,password){ if(!isFirebaseReady()){ showError('Cloud
 function signInWithGoogle(){ if(!isFirebaseReady()){ showError('Cloud sync not configured - Google sign in disabled'); return; } el.authStatusModal.textContent='Connecting to Google...'; const provider=new firebase.auth.GoogleAuthProvider(); auth.signInWithPopup(provider).then(()=>{ closeSignIn(); showSuccess('Signed in with Google!'); el.authStatusModal.textContent='Idle'; }).catch(err=>{ console.error('Google sign-in error:',err); showError(`Google sign-in failed: ${err.message}`); el.authStatusModal.textContent='Idle'; }); }
 function signOut(){ if(!auth){ updateAuthUI(null); showInfo('Signed out'); return; } auth.signOut().then(()=>{ updateAuthUI(null); showInfo('Signed out'); }).catch(()=> showError('Sign-out failed')); }
 
-el.signInForm.onsubmit=(e)=>{ e.preventDefault(); if(!isFirebaseReady()){ showError('Cloud sync not configured - sign in disabled'); return; } const email=el.emailInput.value.trim(); const password=el.passwordInput.value; if(!email||!password){ showError('Enter email and password'); return; } signInWithEmail(email,password); };
-el.createAccountBtn.onclick=()=>{ if(!isFirebaseReady()){ showError('Cloud sync not configured - account creation disabled'); return; } const email=el.emailInput.value.trim(); const password=el.passwordInput.value; if(!email||!password){ showError('Enter email and password'); return; } if(password.length<6){ showError('Password must be at least 6 characters'); return; } createAccount(email,password); };
-el.googleSignInBtn.onclick=()=>{ if(!isFirebaseReady()){ showError('Cloud sync not configured - Google sign in disabled'); return; } signInWithGoogle(); };
 
 /* ========= Error Handling & Notifications ========= */
 let notificationTimeout=null;
@@ -691,7 +726,7 @@ function showInfo(m){ showNotification(m,'info'); }
 function requestDelete(task, cb){ let confirmDeletes=true; try{ const s=JSON.parse(localStorage.getItem('covey_settings')||'{}'); confirmDeletes = s.confirmDeletes !== false; }catch{} if(!confirmDeletes || confirm(`Delete "${task.title}"?`)){ try{ cb(); showSuccess('Task deleted'); } catch(e){ showError('Failed to delete task'); } } }
 function byId(id){ return document.getElementById(id); }
 function escapeHtml(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
-el.saveSettings.onclick=()=>{ saveUserSettings(); showSuccess('Settings saved'); closeSettings(); };
+
 function __recordDelete(){}
 function loadSettingsIntoUI(){ try{ const s=JSON.parse(localStorage.getItem('covey_settings')||'{}'); if(el.fontSelect && s.fontFamily) el.fontSelect.value=s.fontFamily; if(el.confirmDeletes) el.confirmDeletes.checked = s.confirmDeletes !== false; if(el.enableAnimations) el.enableAnimations.checked = s.enableAnimations !== false; if(el.autoFocusInput) el.autoFocusInput.checked = s.autoFocusInput !== false; }catch{} }
 function isFirebaseReady(){ return !!(window.firebase && firebase.apps && firebase.apps.length && auth && db); }
