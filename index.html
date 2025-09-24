@@ -121,6 +121,13 @@ input[type="checkbox"]:checked::after{content:"";width:10px;height:6px;border:2p
   #addForm{grid-template-columns:1fr;gap:8px}
   #addForm button{justify-self:stretch}
   .quadrant-task{padding:12px}
+  
+  /* Better mobile header layout */
+  header{flex-direction:column;gap:8px;margin:8px 0 16px}
+  header > div:first-child{flex:none;justify-content:center}
+  header h1{order:1}
+  header .row{order:2;flex:none;justify-content:center!important;flex-wrap:wrap;gap:8px}
+  #authStatus{font-size:12px;padding:6px 10px}
 }
 
 /* Loading + notifications */
