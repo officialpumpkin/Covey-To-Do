@@ -201,6 +201,7 @@ input[type="checkbox"]:checked::after{content:"";width:10px;height:6px;border:2p
     <div class="card">
       <div class="sec-title">Categorise Tasks</div>
       <p style="color:var(--muted);font-size:14px;margin:0 0 16px;text-align:center">Assign tasks to quadrants based on urgency and importance</p>
+      <div id="categoriseBox"></div>
     </div>
     <div class="quads" role="region" aria-label="Eisenhower Matrix - Task Quadrants">
       <div class="card">
@@ -400,7 +401,6 @@ let el = {};
 
 // Initialize DOM references when page loads
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('DOM Content Loaded - Starting initialization');
   el = { step1:byId('step1'), step2:byId('step2'), step3:byId('step3'), step4:byId('step4'),
     step1Btn:byId('step1Btn'), step2Btn:byId('step2Btn'), step3Btn:byId('step3Btn'), step4Btn:byId('step4Btn'),
     addForm:byId('addForm'), taskInput:byId('taskInput'), inboxList:byId('inboxList'),
@@ -427,10 +427,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize other event handlers that depend on DOM elements
   initializeEventHandlers();
   
-  console.log('Element references initialized, DOM elements found:', Object.keys(el).length);
-  
   // Check for missing critical elements
-  const critical = ['step1', 'step2', 'step3', 'step4', 'prioritiseBox'];
+  const critical = ['step1', 'step2', 'step3', 'step4', 'prioritiseBox', 'categoriseBox', 'addForm', 'taskInput', 'inboxList'];
   const missing = critical.filter(key => !el[key]);
   if (missing.length > 0) {
     console.error('Missing critical DOM elements:', missing);
@@ -450,11 +448,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Initial render
-  console.log('Starting initial render');
   markForUpdate(['step1','step2','step3','step4']);
   renderState.suggestions=true;
   render();
-  console.log('Initialization complete');
   
   // Welcome message
   showInfo('Welcome to Covey To-Do!');
@@ -490,41 +486,46 @@ function setStep(n){ if(step===n) return; step=n; const secs=[el.step1,el.step2,
 /* ========= Event Handlers Initialization ========= */
 function initializeEventHandlers() {
   // Add form
-  el.addForm.onsubmit=(e)=>{ e.preventDefault(); const v=el.taskInput.value.trim(); if(!v){ showError('Please enter a task description'); el.taskInput.focus(); return; } if(v.length>200){ showError('Task description must be less than 200 characters'); el.taskInput.focus(); return; } if(tasks.some(t=> (t.title||'').toLowerCase()===v.toLowerCase())){ showError('A task with this description already exists'); el.taskInput.focus(); return; }
-    addLoadingState(el.addForm); try{ tasks.unshift({id:uid(), title:v, completed:false, quadrant:null, rank:null, urgency:5, importance:5, createdAt:nowMs(), updatedAt:nowMs()}); el.taskInput.value=''; saveLocal(); queueUpload(); markForUpdate(['step1']); renderState.suggestions=true; render(); removeLoadingState(el.addForm); addSuccessFlash(el.inboxList); showSuccess('Task added successfully'); setTimeout(()=> el.taskInput.focus(),100); }catch(err){ removeLoadingState(el.addForm); console.error(err); showError('Failed to add task.'); }
-  };
+  if (el.addForm) {
+    el.addForm.onsubmit=(e)=>{ e.preventDefault(); const v=el.taskInput.value.trim(); if(!v){ showError('Please enter a task description'); el.taskInput.focus(); return; } if(v.length>200){ showError('Task description must be less than 200 characters'); el.taskInput.focus(); return; } if(tasks.some(t=> (t.title||'').toLowerCase()===v.toLowerCase())){ showError('A task with this description already exists'); el.taskInput.focus(); return; }
+      addLoadingState(el.addForm); try{ tasks.unshift({id:uid(), title:v, completed:false, quadrant:null, rank:null, urgency:5, importance:5, createdAt:nowMs(), updatedAt:nowMs()}); el.taskInput.value=''; saveLocal(); queueUpload(); markForUpdate(['step1']); renderState.suggestions=true; render(); removeLoadingState(el.addForm); addSuccessFlash(el.inboxList); showSuccess('Task added successfully'); setTimeout(()=> el.taskInput.focus(),100); }catch(err){ removeLoadingState(el.addForm); console.error(err); showError('Failed to add task.'); }
+    };
+  }
   
   const debouncedSuggestionUpdate = debounce(()=>{ if(step===1){ renderState.suggestions=true; render({suggestions:true}); } }, 300);
-  el.taskInput.addEventListener('input', debouncedSuggestionUpdate);
+  if (el.taskInput) {
+    el.taskInput.addEventListener('input', debouncedSuggestionUpdate);
+  } else {
+    console.error('taskInput element not found - cannot add event listener');
+  }
   
   // Accent controls
   
   
   // Settings
-  
-  el.settingsBtn.onclick=()=> openSettings();
-  el.closeSettings.onclick=()=> closeSettings();
+  if (el.settingsBtn) el.settingsBtn.onclick=()=> openSettings();
+  if (el.closeSettings) el.closeSettings.onclick=()=> closeSettings();
   
   // Authentication
-  el.signInBtn.onclick=()=> openSignIn();
-  el.closeSignIn.onclick=()=> closeSignIn();
+  if (el.signInBtn) el.signInBtn.onclick=()=> openSignIn();
+  if (el.closeSignIn) el.closeSignIn.onclick=()=> closeSignIn();
   
   // Font selection
-  el.fontSelect.onchange = () => applyFont(el.fontSelect.value);
+  if (el.fontSelect) el.fontSelect.onchange = () => applyFont(el.fontSelect.value);
   
   // Current list controls
-  el.showCompleted.onchange=()=>{ showCompleted=el.showCompleted.checked; markForUpdate(['step4']); render(); };
-  el.clearBtn.onclick=()=>{ const n=tasks.length; if(n===0){ showInfo('No tasks to clear'); return; } if(confirm(`Delete all ${n} tasks? This cannot be undone.`)){ addLoadingState(el.clearBtn); try{ tasks=[]; saveLocal(); queueUpload(true); markForUpdate(['step1','step2','step3','step4']); renderState.suggestions=true; render(); showSuccess(`Cleared ${n} tasks`); } finally { removeLoadingState(el.clearBtn); } } };
+  if (el.showCompleted) el.showCompleted.onchange=()=>{ showCompleted=el.showCompleted.checked; markForUpdate(['step4']); render(); };
+  if (el.clearBtn) el.clearBtn.onclick=()=>{ const n=tasks.length; if(n===0){ showInfo('No tasks to clear'); return; } if(confirm(`Delete all ${n} tasks? This cannot be undone.`)){ addLoadingState(el.clearBtn); try{ tasks=[]; saveLocal(); queueUpload(true); markForUpdate(['step1','step2','step3','step4']); renderState.suggestions=true; render(); showSuccess(`Cleared ${n} tasks`); } finally { removeLoadingState(el.clearBtn); } } };
   
   // Import/Export
-  el.exportData.onclick=()=> exportTasks();
-  el.importData.onclick=()=> el.importFile.click();
-  el.importFile.onchange=(e)=> importTasks(e.target.files[0]);
+  if (el.exportData) el.exportData.onclick=()=> exportTasks();
+  if (el.importData) el.importData.onclick=()=> el.importFile.click();
+  if (el.importFile) el.importFile.onchange=(e)=> importTasks(e.target.files[0]);
   
   // Sign in form
-  el.signInForm.onsubmit=(e)=>{ e.preventDefault(); if(!isFirebaseReady()){ showError('Cloud sync not configured - sign in disabled'); return; } const email=el.emailInput.value.trim(); const password=el.passwordInput.value; if(!email||!password){ showError('Enter email and password'); return; } signInWithEmail(email,password); };
-  el.createAccountBtn.onclick=()=>{ if(!isFirebaseReady()){ showError('Cloud sync not configured - account creation disabled'); return; } const email=el.emailInput.value.trim(); const password=el.passwordInput.value; if(!email||!password){ showError('Enter email and password'); return; } if(password.length<6){ showError('Password must be at least 6 characters'); return; } createAccount(email,password); };
-  el.googleSignInBtn.onclick=()=>{ if(!isFirebaseReady()){ showError('Cloud sync not configured - Google sign in disabled'); return; } signInWithGoogle(); };
+  if (el.signInForm) el.signInForm.onsubmit=(e)=>{ e.preventDefault(); if(!isFirebaseReady()){ showError('Cloud sync not configured - sign in disabled'); return; } const email=el.emailInput.value.trim(); const password=el.passwordInput.value; if(!email||!password){ showError('Enter email and password'); return; } signInWithEmail(email,password); };
+  if (el.createAccountBtn) el.createAccountBtn.onclick=()=>{ if(!isFirebaseReady()){ showError('Cloud sync not configured - account creation disabled'); return; } const email=el.emailInput.value.trim(); const password=el.passwordInput.value; if(!email||!password){ showError('Enter email and password'); return; } if(password.length<6){ showError('Password must be at least 6 characters'); return; } createAccount(email,password); };
+  if (el.googleSignInBtn) el.googleSignInBtn.onclick=()=>{ if(!isFirebaseReady()){ showError('Cloud sync not configured - Google sign in disabled'); return; } signInWithGoogle(); };
 }
 
 
@@ -542,15 +543,12 @@ function normalizeRanks(qKey){ const q=tasks.filter(t=>t.quadrant===qKey).sort((
 
 /* ========= Render ========= */
 function render(forceUpdate={}){ 
-  console.log('render() called with:', forceUpdate);
   const should={...renderState,...forceUpdate}; 
-  console.log('render flags:', should);
-  
-  if(should.step1){ console.log('Rendering step1'); renderStep1(); renderState.step1=false; renderState.suggestions=false; } 
-  if(should.step2){ console.log('Rendering step2'); renderStep2(); renderState.step2=false; } 
-  if(should.step3){ console.log('Rendering step3'); renderStep3(); renderState.step3=false; } 
-  if(should.step4){ console.log('Rendering step4'); renderStep4(); renderState.step4=false; } 
-  if(should.suggestions && !should.step1){ console.log('Rendering suggestions'); renderSuggestions(); renderState.suggestions=false; } 
+  if(should.step1){ renderStep1(); renderState.step1=false; renderState.suggestions=false; } 
+  if(should.step2){ renderStep2(); renderState.step2=false; } 
+  if(should.step3){ renderStep3(); renderState.step3=false; } 
+  if(should.step4){ renderStep4(); renderState.step4=false; } 
+  if(should.suggestions && !should.step1){ renderSuggestions(); renderState.suggestions=false; } 
 }
 function renderStep1(){ const unc=inbox(false); updateList(el.inboxList, unc, {showQuadrant:false}, 'No tasks'); renderSuggestions(); }
 function renderStep2(){ const g=groups(true); const current=inbox(false)[0]; updateCategoriseBox(current); mountQuadrantList(el.listQ1,g.Q1,'Q1'); mountQuadrantList(el.listQ2,g.Q2,'Q2'); mountQuadrantList(el.listQ3,g.Q3,'Q3'); mountQuadrantList(el.listQ4,g.Q4,'Q4'); }
@@ -574,9 +572,7 @@ function allSortedByPriority(includeCompleted) {
 }
 
 function renderPrioritise() {
-  console.log('renderPrioritise called');
   const categorized = tasks.filter(t => t.quadrant);
-  console.log('Categorized tasks found:', categorized.length);
   
   if (!el.prioritiseBox) {
     console.error('prioritiseBox element not found!');
@@ -584,7 +580,6 @@ function renderPrioritise() {
   }
   
   if (!categorized.length) {
-    console.log('No categorized tasks, showing empty state');
     el.prioritiseBox.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px">No categorized tasks to prioritise.<br>Go to step 2 to categorise your tasks first.</div>';
     return;
   }
@@ -793,10 +788,8 @@ window.addEventListener('unhandledrejection', (event)=>{ console.error('Unhandle
 
 /* ========= Early Init (theme/settings before DOM) ========= */
 try{
-  console.log('JavaScript is executing - early init starting');
   initAccent();
   loadUserSettings();
-  console.log('Early initialization completed successfully');
 } catch(e){ 
   console.error('Early initialization error:', e);
 }
