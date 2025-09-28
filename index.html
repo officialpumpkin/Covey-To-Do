@@ -589,6 +589,174 @@ function renderStep2(){ const g=groups(true); const current=inbox(false)[0]; upd
 function renderStep3(){ renderPrioritise(); }
 function renderStep4(){ renderMindMap(); }
 
+/* ========= Mind Map Visualization ========= */
+function renderMindMap() {
+  if (!el.mindMapSvg) return;
+  
+  // Get tasks to display
+  const showCompleted = el.showCompletedMindMap?.checked || false;
+  const visibleTasks = tasks.filter(t => t.quadrant && (showCompleted || !t.completed));
+  
+  // Clear existing content
+  el.mindMapSvg.innerHTML = '';
+  
+  if (visibleTasks.length === 0) {
+    // Show empty state
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', '400');
+    text.setAttribute('y', '250');
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('fill', 'var(--muted)');
+    text.setAttribute('font-size', '14');
+    text.textContent = 'No categorized tasks to visualize';
+    el.mindMapSvg.appendChild(text);
+    return;
+  }
+  
+  // Calculate node data
+  const nodes = visibleTasks.map(task => {
+    const priority = calculatePriority(task);
+    const normalizedScore = Math.max(1, Math.min(100, priority));
+    const radius = Math.max(12, Math.min(44, 12 + (normalizedScore / 100) * 32));
+    
+    return {
+      task,
+      priority,
+      radius,
+      x: 0, // Will be calculated
+      y: 0, // Will be calculated
+      quadrant: task.quadrant
+    };
+  });
+  
+  // Position nodes by quadrant
+  positionMindMapNodes(nodes);
+  
+  // Create SVG elements
+  nodes.forEach((node, index) => {
+    createMindMapNode(node, index);
+  });
+  
+  // Add center label
+  const centerText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  centerText.setAttribute('x', '400');
+  centerText.setAttribute('y', '250');
+  centerText.setAttribute('text-anchor', 'middle');
+  centerText.setAttribute('fill', 'var(--text)');
+  centerText.setAttribute('font-size', '16');
+  centerText.setAttribute('font-weight', '600');
+  centerText.textContent = 'My Tasks';
+  el.mindMapSvg.appendChild(centerText);
+}
+
+function positionMindMapNodes(nodes) {
+  // Define quadrant sectors (angles in radians)
+  const sectors = {
+    Q1: { startAngle: 0, endAngle: Math.PI / 2, centerX: 550, centerY: 150 },      // Top-right
+    Q2: { startAngle: Math.PI / 2, endAngle: Math.PI, centerX: 250, centerY: 150 }, // Top-left  
+    Q3: { startAngle: Math.PI, endAngle: 3 * Math.PI / 2, centerX: 250, centerY: 350 }, // Bottom-left
+    Q4: { startAngle: 3 * Math.PI / 2, endAngle: 2 * Math.PI, centerX: 550, centerY: 350 } // Bottom-right
+  };
+  
+  // Group nodes by quadrant
+  const quadrantGroups = { Q1: [], Q2: [], Q3: [], Q4: [] };
+  nodes.forEach(node => {
+    if (quadrantGroups[node.quadrant]) {
+      quadrantGroups[node.quadrant].push(node);
+    }
+  });
+  
+  // Position each quadrant
+  Object.keys(quadrantGroups).forEach(quadrant => {
+    const group = quadrantGroups[quadrant];
+    const sector = sectors[quadrant];
+    
+    if (group.length === 0) return;
+    
+    group.forEach((node, index) => {
+      // Calculate position in circular arrangement
+      const radius = 80 + (node.priority / 100) * 60; // Distance from sector center
+      const angleStep = (sector.endAngle - sector.startAngle) / Math.max(1, group.length - 1);
+      const angle = group.length === 1 
+        ? (sector.startAngle + sector.endAngle) / 2  // Center if only one
+        : sector.startAngle + (index * angleStep);
+      
+      node.x = sector.centerX + radius * Math.cos(angle);
+      node.y = sector.centerY + radius * Math.sin(angle);
+      
+      // Keep nodes within bounds
+      node.x = Math.max(node.radius + 10, Math.min(790 - node.radius, node.x));
+      node.y = Math.max(node.radius + 10, Math.min(490 - node.radius, node.y));
+    });
+  });
+}
+
+function createMindMapNode(node, index) {
+  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  group.setAttribute('class', 'mind-map-node');
+  group.setAttribute('data-task-id', node.task.id);
+  group.setAttribute('tabindex', '0');
+  
+  // Create circle
+  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  circle.setAttribute('cx', node.x);
+  circle.setAttribute('cy', node.y);
+  circle.setAttribute('r', node.radius);
+  circle.setAttribute('fill', getQuadrantColor(node.quadrant));
+  circle.setAttribute('stroke', 'var(--border)');
+  circle.setAttribute('stroke-width', '2');
+  circle.setAttribute('opacity', node.task.completed ? '0.5' : '1');
+  
+  // Create label
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  text.setAttribute('x', node.x);
+  text.setAttribute('y', node.y + 4);
+  text.setAttribute('text-anchor', 'middle');
+  text.setAttribute('fill', 'white');
+  text.setAttribute('font-size', Math.min(12, node.radius / 2));
+  text.setAttribute('font-weight', '600');
+  text.setAttribute('pointer-events', 'none');
+  
+  // Truncate long titles
+  const title = node.task.title || '';
+  const maxLength = Math.max(3, Math.floor(node.radius / 3));
+  text.textContent = title.length > maxLength ? title.substring(0, maxLength) + '…' : title;
+  
+  // Add tooltip
+  const title_element = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+  title_element.textContent = `${node.task.title} (Priority: ${node.priority}/100, Urgency: ${node.task.urgency || 5}, Importance: ${node.task.importance || 5})`;
+  
+  // Add interactivity
+  group.addEventListener('click', () => {
+    // Switch to step 3 and highlight this task
+    setStep(3);
+    showInfo(`Viewing details for: ${node.task.title}`);
+  });
+  
+  group.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setStep(3);
+      showInfo(`Viewing details for: ${node.task.title}`);
+    }
+  });
+  
+  group.appendChild(circle);
+  group.appendChild(text);
+  group.appendChild(title_element);
+  el.mindMapSvg.appendChild(group);
+}
+
+function getQuadrantColor(quadrant) {
+  const colors = {
+    Q1: '#ef4444', // Red - Urgent + Important
+    Q2: '#10b981', // Green - Not Urgent + Important  
+    Q3: '#f59e0b', // Orange - Urgent + Not Important
+    Q4: '#6b7280'  // Gray - Not Urgent + Not Important
+  };
+  return colors[quadrant] || '#6b7280';
+}
+
 // Priority calculation and sorting
 function calculatePriority(task) {
   const urgency = task.urgency || 5;
