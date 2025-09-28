@@ -411,7 +411,7 @@ let unsubscribe = null;
 let lastPushedAt = 0;
 
 // Performance render flags
-let renderState = { step1:true, step2:true, step3:true, suggestions:true };
+let renderState = { step1:true, step2:true, step3:true, step4:true, suggestions:true };
 
 function debounce(func, wait){ let timeout; return function(...args){ clearTimeout(timeout); timeout=setTimeout(()=>func.apply(this,args), wait); }; }
 
@@ -431,11 +431,12 @@ let el = {};
 
 // Initialize DOM references when page loads
 document.addEventListener('DOMContentLoaded', function() {
-  el = { step1:byId('step1'), step2:byId('step2'), step3:byId('step3'),
-    step1Btn:byId('step1Btn'), step2Btn:byId('step2Btn'), step3Btn:byId('step3Btn'),
+  el = { step1:byId('step1'), step2:byId('step2'), step3:byId('step3'), step4:byId('step4'),
+    step1Btn:byId('step1Btn'), step2Btn:byId('step2Btn'), step3Btn:byId('step3Btn'), step4Btn:byId('step4Btn'),
     addForm:byId('addForm'), taskInput:byId('taskInput'), inboxList:byId('inboxList'),
     listQ1:byId('listQ1'), listQ2:byId('listQ2'), listQ3:byId('listQ3'), listQ4:byId('listQ4'),
     categoriseBox:byId('categoriseBox'), prioritiseBox:byId('prioritiseBox'), suggestions:byId('suggestions'),
+    mindMapSvg:byId('mindMapSvg'), showCompletedMindMap:byId('showCompletedMindMap'),
     showCompleted:byId('showCompleted'), clearBtn:byId('clearBtn'),
     settingsBtn:byId('settingsBtn'), settingsModal:byId('settingsModal'), closeSettings:byId('closeSettings'),
     signInBtn:byId('signInBtn'), signInModal:byId('signInModal'), closeSignIn:byId('closeSignIn'),
@@ -452,12 +453,13 @@ document.addEventListener('DOMContentLoaded', function() {
   el.step1Btn.onclick=()=> setStep(1);
   el.step2Btn.onclick=()=> setStep(2);
   el.step3Btn.onclick=()=> setStep(3);
+  el.step4Btn.onclick=()=> setStep(4);
   
   // Initialize other event handlers that depend on DOM elements
   initializeEventHandlers();
   
   // Check for missing critical elements
-  const critical = ['step1', 'step2', 'step3', 'prioritiseBox', 'categoriseBox', 'addForm', 'taskInput', 'inboxList'];
+  const critical = ['step1', 'step2', 'step3', 'step4', 'prioritiseBox', 'categoriseBox', 'addForm', 'taskInput', 'inboxList', 'mindMapSvg'];
   const missing = critical.filter(key => !el[key]);
   if (missing.length > 0) {
     console.error('Missing critical DOM elements:', missing);
@@ -477,7 +479,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   
   // Initial render
-  markForUpdate(['step1','step2','step3']);
+  markForUpdate(['step1','step2','step3','step4']);
   renderState.suggestions=true;
   render();
   
@@ -488,7 +490,7 @@ document.addEventListener('DOMContentLoaded', function() {
 /* ========= Keyboard Navigation ========= */
 document.addEventListener('keydown', (e)=>{
   if(e.target.closest('#stepper')){
-    const buttons=[el.step1Btn,el.step2Btn,el.step3Btn];
+    const buttons=[el.step1Btn,el.step2Btn,el.step3Btn,el.step4Btn];
     const idx=buttons.findIndex(btn=>btn===e.target);
     if(e.key==='ArrowLeft' || e.key==='ArrowRight'){
       e.preventDefault();
@@ -546,6 +548,9 @@ function initializeEventHandlers() {
   if (el.showCompleted) el.showCompleted.onchange=()=>{ showCompleted=el.showCompleted.checked; markForUpdate(['step3']); render(); };
   if (el.clearBtn) el.clearBtn.onclick=()=>{ const n=tasks.length; if(n===0){ showInfo('No tasks to clear'); return; } if(confirm(`Delete all ${n} tasks? This cannot be undone.`)){ addLoadingState(el.clearBtn); try{ tasks=[]; saveLocal(); queueUpload(true); markForUpdate(['step1','step2','step3']); renderState.suggestions=true; render(); showSuccess(`Cleared ${n} tasks`); } finally { removeLoadingState(el.clearBtn); } } };
   
+  // Mind map controls
+  if (el.showCompletedMindMap) el.showCompletedMindMap.onchange=()=>{ markForUpdate(['step4']); render(); };
+  
   // Import/Export
   if (el.exportData) el.exportData.onclick=()=> exportTasks();
   if (el.importData) el.importData.onclick=()=> el.importFile.click();
@@ -576,11 +581,13 @@ function render(forceUpdate={}){
   if(should.step1){ renderStep1(); renderState.step1=false; renderState.suggestions=false; } 
   if(should.step2){ renderStep2(); renderState.step2=false; } 
   if(should.step3){ renderStep3(); renderState.step3=false; } 
+  if(should.step4){ renderStep4(); renderState.step4=false; } 
   if(should.suggestions && !should.step1){ renderSuggestions(); renderState.suggestions=false; } 
 }
 function renderStep1(){ const unc=inbox(false); updateList(el.inboxList, unc, {showQuadrant:false}, 'No tasks'); renderSuggestions(); }
 function renderStep2(){ const g=groups(true); const current=inbox(false)[0]; updateCategoriseBox(current); mountQuadrantList(el.listQ1,g.Q1,'Q1'); mountQuadrantList(el.listQ2,g.Q2,'Q2'); mountQuadrantList(el.listQ3,g.Q3,'Q3'); mountQuadrantList(el.listQ4,g.Q4,'Q4'); }
 function renderStep3(){ renderPrioritise(); }
+function renderStep4(){ renderMindMap(); }
 
 // Priority calculation and sorting
 function calculatePriority(task) {
