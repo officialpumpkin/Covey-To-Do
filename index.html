@@ -75,13 +75,34 @@ input[type="text"],textarea{border:1px solid var(--border);border-radius:999px;p
 
 /* Lists */
 .list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;text-align:left}
-.task{position:relative;display:flex;gap:10px;border:1px solid var(--border);border-radius:12px;background:var(--card);padding:12px;align-items:center;box-shadow:var(--shadow)}
+.task{position:relative;display:flex;gap:10px;border:1px solid var(--border);border-radius:12px;background:var(--card);padding:12px;align-items:flex-start;box-shadow:var(--shadow);flex-wrap:wrap}
+.task-row{display:flex;align-items:center;gap:10px;width:100%}
 .title{font-weight:600;white-space:normal;word-break:normal;overflow-wrap:anywhere;line-height:1.25}
 .strike{text-decoration:line-through;opacity:.7}
 .spacer{flex:1 1 auto}
 .pill{font-size:12px;border:1px solid var(--border);padding:6px 10px;border-radius:999px;background:var(--pill-bg);color:var(--pill-text)}
 .closebtn{border-color:rgba(239,68,68,.4);color:#ef4444;background:transparent}
 .closebtn:hover{background:rgba(239,68,68,.08)}
+details.subtasks{margin-top:8px;width:100%;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px}
+details.subtasks summary{cursor:pointer;font-weight:600;font-size:13px;outline:none;list-style:none}
+details.subtasks summary::-webkit-details-marker{display:none}
+details.subtasks summary::marker{display:none}
+details.subtasks[open]{box-shadow:0 2px 10px rgba(0,0,0,.05)}
+.subtask-list{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
+.subtask-item{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.05)}
+.subtask-item:last-child{border-bottom:none}
+.subtask-item button{border:none;background:transparent;color:#ef4444;cursor:pointer;font-size:16px;padding:4px 6px;border-radius:8px}
+.subtask-item button:hover{background:rgba(239,68,68,.1)}
+.subtask-item input[type="checkbox"]{flex:none}
+.subtask-item .subtask-title{flex:1;font-size:13px}
+.subtask-empty{font-size:12px;color:var(--muted);padding:4px 0}
+.subtask-form{display:flex;gap:8px;margin-top:10px}
+.subtask-form input[type="text"]{flex:1;padding:8px 12px;border-radius:8px;border:1px solid var(--border);font-size:13px}
+.subtask-form button{min-height:34px;padding:0 14px;font-size:13px}
+.subtasks-compact{padding:8px}
+.subtasks-compact summary{font-size:12px}
+.subtasks-compact .subtask-form input[type="text"]{font-size:12px;padding:6px 10px}
+.subtasks-compact .subtask-item{gap:8px}
 
 /* View transitions */
 .view{max-height:0;opacity:0;transform:translateY(6px);overflow:hidden;transition:opacity .2s ease,transform .2s ease,max-height .25s ease}
@@ -401,6 +422,7 @@ function initAccent(){ const saved = localStorage.getItem(ACCENT_KEY); if(saved)
 const STORAGE_KEY = "covey_minimal_v4";
 const SYNC_KEY = "covey_sync_settings_v1";
 let tasks = loadLocal();
+normalizeAllTasks();
 let step = 1;
 let answeredUrgent = null;
 let showCompleted = false;
@@ -420,6 +442,31 @@ function saveLocal(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(task
 function uid(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
 function nowMs(){ return Date.now(); }
 function num(v){ return (v===undefined||v===null)? Number.POSITIVE_INFINITY : Number(v); }
+
+function ensureSubtaskShape(sub){
+  if(!sub || typeof sub!=='object'){
+    return { id: uid(), title: '', completed: false, createdAt: nowMs(), updatedAt: nowMs() };
+  }
+  if(!sub.id) sub.id = uid();
+  sub.title = typeof sub.title === 'string' ? sub.title : '';
+  sub.completed = !!sub.completed;
+  sub.createdAt = sub.createdAt || nowMs();
+  sub.updatedAt = sub.updatedAt || nowMs();
+  return sub;
+}
+
+function ensureTaskShape(task){
+  if(!task || typeof task !== 'object') return null;
+  if(!Array.isArray(task.subtasks)) task.subtasks = [];
+  task.subtasks = task.subtasks.map(ensureSubtaskShape);
+  return task;
+}
+
+function normalizeAllTasks(){
+  if(!Array.isArray(tasks)) tasks = [];
+  tasks = tasks.filter(Boolean);
+  tasks.forEach(ensureTaskShape);
+}
 
 /* ========= Derived helpers ========= */
 function inbox(includeCompleted){ return tasks.filter(t=>!t.quadrant && (includeCompleted || !t.completed)); }
@@ -519,7 +566,7 @@ function initializeEventHandlers() {
   // Add form
   if (el.addForm) {
     el.addForm.onsubmit=(e)=>{ e.preventDefault(); const v=el.taskInput.value.trim(); if(!v){ showError('Please enter a task description'); el.taskInput.focus(); return; } if(v.length>200){ showError('Task description must be less than 200 characters'); el.taskInput.focus(); return; } if(tasks.some(t=> (t.title||'').toLowerCase()===v.toLowerCase())){ showError('A task with this description already exists'); el.taskInput.focus(); return; }
-      addLoadingState(el.addForm); try{ tasks.unshift({id:uid(), title:v, completed:false, quadrant:null, rank:null, urgency:5, importance:5, createdAt:nowMs(), updatedAt:nowMs()}); el.taskInput.value=''; saveLocal(); queueUpload(); markForUpdate(['step1']); renderState.suggestions=true; render(); removeLoadingState(el.addForm); addSuccessFlash(el.inboxList); showSuccess('Task added successfully'); setTimeout(()=> el.taskInput.focus(),100); }catch(err){ removeLoadingState(el.addForm); console.error(err); showError('Failed to add task.'); }
+      addLoadingState(el.addForm); try{ tasks.unshift({id:uid(), title:v, completed:false, quadrant:null, rank:null, urgency:5, importance:5, createdAt:nowMs(), updatedAt:nowMs(), subtasks:[]}); el.taskInput.value=''; saveLocal(); queueUpload(); markForUpdate(['step1']); renderState.suggestions=true; render(); removeLoadingState(el.addForm); addSuccessFlash(el.inboxList); showSuccess('Task added successfully'); setTimeout(()=> el.taskInput.focus(),100); }catch(err){ removeLoadingState(el.addForm); console.error(err); showError('Failed to add task.'); }
     };
   }
   
@@ -859,6 +906,7 @@ function renderPrioritise() {
     const taskList = section.querySelector('.priority-task-list');
     
     quadrantTasks.forEach((task, index) => {
+      ensureTaskShape(task);
       const priority = calculatePriority(task);
       const taskDiv = document.createElement('div');
       taskDiv.className = 'priority-task';
@@ -895,6 +943,9 @@ function renderPrioritise() {
       taskDiv.addEventListener('drop', handleDrop);
       taskDiv.addEventListener('dragenter', handleDragEnter);
       taskDiv.addEventListener('dragleave', handleDragLeave);
+      
+      const subtasksSection = createSubtaskDetails(task, { emptyText: 'No subtasks yet', compact: true, defaultOpen: false });
+      taskDiv.appendChild(subtasksSection);
       
       taskList.appendChild(taskDiv);
     });
@@ -1077,15 +1128,137 @@ function updateTaskScore(taskId, type, value) {
 function toggleTaskCompletion(taskId) {
   const task = tasks.find(t => t.id === taskId);
   if (!task) return;
-  
+
   task.completed = !task.completed;
   task.updatedAt = nowMs();
-  
+
   saveLocal();
   queueUpload();
   markForUpdate(['step3']);
   render();
 }
+
+/* ========= Subtasks ========= */
+function getSubtasks(task){
+  ensureTaskShape(task);
+  return task.subtasks;
+}
+
+function subtaskCounts(task){
+  const list=getSubtasks(task);
+  const completed=list.filter(st=>st.completed).length;
+  return { total:list.length, completed };
+}
+
+function addSubtask(task, title){
+  const trimmed=title.trim();
+  if(!trimmed) return;
+  const subtasks=getSubtasks(task);
+  subtasks.push({ id:uid(), title:trimmed, completed:false, createdAt:nowMs(), updatedAt:nowMs() });
+  task.updatedAt=nowMs();
+  saveLocal();
+  queueUpload();
+  markForUpdate(['step1','step2','step3']);
+  render();
+}
+
+function toggleSubtask(task, subtask){
+  subtask.completed=!subtask.completed;
+  subtask.updatedAt=nowMs();
+  task.updatedAt=nowMs();
+  saveLocal();
+  queueUpload();
+  markForUpdate(['step1','step2','step3']);
+  render();
+}
+
+function deleteSubtask(task, subtask){
+  let confirmDeletes=true;
+  try{
+    const settings=JSON.parse(localStorage.getItem('covey_settings')||'{}');
+    confirmDeletes=settings.confirmDeletes !== false;
+  }catch{}
+  if(confirmDeletes && !confirm(`Delete subtask "${subtask.title}"?`)) return;
+  task.subtasks=getSubtasks(task).filter(st=>st.id!==subtask.id);
+  task.updatedAt=nowMs();
+  saveLocal();
+  queueUpload();
+  markForUpdate(['step1','step2','step3']);
+  render();
+}
+
+function createSubtaskDetails(task, options={}){
+  const opts=Object.assign({
+    emptyText:'No subtasks yet',
+    defaultOpen:true,
+    compact:false
+  }, options);
+  const subtasks=getSubtasks(task);
+  const counts=subtaskCounts(task);
+  const wrapper=document.createElement('details');
+  wrapper.className='subtasks'+(opts.compact?' subtasks-compact':'');
+  if(counts.total && opts.defaultOpen!==false){
+    wrapper.open=true;
+  }
+  const summary=document.createElement('summary');
+  summary.textContent=counts.total ? `Subtasks (${counts.completed}/${counts.total})` : 'Subtasks';
+  wrapper.appendChild(summary);
+
+  const list=document.createElement('ul');
+  list.className='subtask-list';
+  if(!subtasks.length){
+    const empty=document.createElement('li');
+    empty.className='subtask-empty';
+    empty.textContent=opts.emptyText;
+    list.appendChild(empty);
+  } else {
+    subtasks.forEach(sub=> list.appendChild(createSubtaskItem(task, sub)));
+  }
+  wrapper.appendChild(list);
+
+  const form=document.createElement('form');
+  form.className='subtask-form';
+  const input=document.createElement('input');
+  input.type='text';
+  input.placeholder='Add subtask…';
+  input.maxLength=120;
+  input.setAttribute('aria-label',`Add subtask to ${task.title}`);
+  const button=document.createElement('button');
+  button.type='submit';
+  button.className='btn pill ghost sm';
+  button.textContent='Add';
+  form.append(input, button);
+  form.onsubmit=(e)=>{
+    e.preventDefault();
+    const value=input.value.trim();
+    if(!value){ input.focus(); return; }
+    addSubtask(task, value);
+    input.value='';
+  };
+  wrapper.appendChild(form);
+
+  return wrapper;
+}
+
+function createSubtaskItem(task, subtask){
+  const li=document.createElement('li');
+  li.className='subtask-item';
+  const cb=document.createElement('input');
+  cb.type='checkbox';
+  cb.checked=subtask.completed;
+  cb.onchange=()=> toggleSubtask(task, subtask);
+  const title=document.createElement('span');
+  title.className='subtask-title'+(subtask.completed?' strike':'');
+  title.textContent=subtask.title || '';
+  const remove=document.createElement('button');
+  remove.type='button';
+  remove.setAttribute('aria-label',`Delete subtask ${subtask.title}`);
+  remove.textContent='×';
+  remove.onclick=()=> deleteSubtask(task, subtask);
+  li.append(cb,title,remove);
+  return li;
+}
+
 function renderSuggestions(){ const sugg=computeSuggestions(); el.suggestions.innerHTML=''; const frag=document.createDocumentFragment(); sugg.forEach(s=>{ const b=document.createElement('button'); b.className='chip'; b.type='button'; b.textContent=s; b.onclick=()=>applySuggestion(s); frag.appendChild(b); }); el.suggestions.appendChild(frag); }
 function updateList(container, items, opts, emptyMsg){ if(!items.length){ const li=document.createElement('li'); li.className='empty-state'; li.setAttribute('role','listitem'); li.setAttribute('aria-live','polite'); li.innerHTML=`<p>${escapeHtml(emptyMsg)}</p>`; container.innerHTML=''; container.appendChild(li); return; } const frag=document.createDocumentFragment(); items.forEach(item=> frag.appendChild(rowItem(item,opts))); container.innerHTML=''; container.appendChild(frag); }
 function updateCategoriseBox(current){ if(!current){ el.categoriseBox.innerHTML='<div class="muted" style="text-align:center" role="status">No uncategorised tasks.</div>'; }
@@ -1107,12 +1280,125 @@ function updateCategoriseBox(current){ if(!current){ el.categoriseBox.innerHTML=
       <button class="btn pill ghost" onclick="answerUrgent(null)">Back</button>
     </div>`; } }
 function markForUpdate(parts=['step1','step2','step3']){ parts.forEach(p=>{ if(p in renderState) renderState[p]=true; }); }
-function rowItem(t,opts){ const li=document.createElement('li'); li.dataset.id=t.id; li.className='task'+((opts&&opts.showQuadrant&&t.quadrant)?(' q-'+t.quadrant):''); li.setAttribute('role','listitem'); const cb=document.createElement('input'); cb.type='checkbox'; cb.id=`task-${t.id}`; cb.checked=t.completed; cb.setAttribute('aria-describedby',`task-title-${t.id}`); cb.onchange=()=>{ t.completed=!t.completed; t.updatedAt=Date.now(); saveLocal(); queueUpload(); const updates=['step3']; if(!t.quadrant) updates.push('step1'); if(t.quadrant) updates.push('step2'); markForUpdate(updates); render(); }; const title=document.createElement('div'); title.className='title'; title.id=`task-title-${t.id}`; title.textContent=t.title||''; if(t.completed){ title.className+=' strike'; } if(opts&&opts.showQuadrant&&t.quadrant){ const pill=document.createElement('span'); pill.className='qpill '+t.quadrant; pill.textContent=t.quadrant; pill.setAttribute('aria-label',`Priority quadrant ${t.quadrant}`); title.appendChild(pill); }
-  const spacer=document.createElement('div'); spacer.className='spacer'; const del=document.createElement('button'); del.className='btn pill ghost closebtn'; del.textContent='×'; del.setAttribute('aria-label',`Delete task: ${t.title}`); del.title='Delete task'; del.onclick=()=> requestDelete(t, ()=>{ tasks = tasks.filter(x=>x.id!==t.id); saveLocal(); queueUpload(); __recordDelete(); markForUpdate(['step1','step2','step3']); render(); }); li.append(cb,title,spacer,del); return li; }
+function rowItem(t,opts){
+  ensureTaskShape(t);
+  const li=document.createElement('li');
+  li.dataset.id=t.id;
+  li.className='task'+((opts&&opts.showQuadrant&&t.quadrant)?(' q-'+t.quadrant):'');
+  li.setAttribute('role','listitem');
+
+  const row=document.createElement('div');
+  row.className='task-row';
+
+  const cb=document.createElement('input');
+  cb.type='checkbox';
+  cb.id=`task-${t.id}`;
+  cb.checked=t.completed;
+  cb.setAttribute('aria-describedby',`task-title-${t.id}`);
+  cb.onchange=()=>{
+    t.completed=!t.completed;
+    t.updatedAt=Date.now();
+    saveLocal();
+    queueUpload();
+    const updates=['step3'];
+    if(!t.quadrant) updates.push('step1');
+    if(t.quadrant) updates.push('step2');
+    markForUpdate(updates);
+    render();
+  };
+
+  const title=document.createElement('div');
+  title.className='title';
+  title.id=`task-title-${t.id}`;
+  title.textContent=t.title||'';
+  if(t.completed){
+    title.className='title strike';
+  }
+  if(opts&&opts.showQuadrant&&t.quadrant){
+    const pill=document.createElement('span');
+    pill.className='qpill '+t.quadrant;
+    pill.textContent=t.quadrant;
+    pill.setAttribute('aria-label',`Priority quadrant ${t.quadrant}`);
+    title.appendChild(pill);
+  }
+
+  const spacer=document.createElement('div');
+  spacer.className='spacer';
+
+  const del=document.createElement('button');
+  del.className='btn pill ghost closebtn';
+  del.textContent='×';
+  del.setAttribute('aria-label',`Delete task: ${t.title}`);
+  del.title='Delete task';
+  del.onclick=()=> requestDelete(t, ()=>{
+    tasks = tasks.filter(x=>x.id!==t.id);
+    saveLocal();
+    queueUpload();
+    __recordDelete();
+    markForUpdate(['step1','step2','step3']);
+    render();
+  });
+
+  row.append(cb,title,spacer,del);
+  li.append(row);
+
+  const subtasksSection=createSubtaskDetails(t, { emptyText:'No subtasks yet' });
+  li.append(subtasksSection);
+
+  return li;
+}
 function mountQuadrantList(container, arr, key){ if(!arr.length){ const li=document.createElement('li'); li.className='empty-state'; li.setAttribute('role','listitem'); li.style.padding='20px'; li.innerHTML='<p style="font-size:13px;color:var(--muted)">No tasks in this quadrant</p>'; container.innerHTML=''; container.appendChild(li); return; } const frag=document.createDocumentFragment(); arr.forEach(t=>{ frag.appendChild(createQuadrantListItem(t,key)); }); container.innerHTML=''; container.appendChild(frag); }
-function createQuadrantListItem(t,key){ const li=document.createElement('li'); li.className='task quadrant-task'; li.dataset.id=t.id; li.setAttribute('role','listitem'); const title=document.createElement('div'); title.className='title'; title.id=`task-title-${key}-${t.id}`; title.textContent=t.title||''; if(t.completed){ title.className+=' strike'; } const spacer=document.createElement('div'); spacer.className='spacer'; const actions=document.createElement('div'); actions.className='row-actions'; actions.setAttribute('role','group'); actions.setAttribute('aria-label',`Actions for ${t.title}`);
-  const decat=document.createElement('button'); decat.className='btn pill ghost'; decat.setAttribute('aria-label',`Reset category for ${t.title}`); decat.title='Reset category'; decat.textContent='Reset Category'; decat.onclick=()=>{ t.quadrant=null; t.rank=null; t.updatedAt=Date.now(); saveLocal(); queueUpload(); markForUpdate(['step1','step2','step3']); render(); };
-  actions.append(decat); li.append(title,spacer,actions); return li; }
+function createQuadrantListItem(t,key){
+  ensureTaskShape(t);
+  const li=document.createElement('li');
+  li.className='task quadrant-task';
+  li.dataset.id=t.id;
+  li.setAttribute('role','listitem');
+
+  const header=document.createElement('div');
+  header.className='task-row';
+  header.style.marginBottom='8px';
+
+  const title=document.createElement('div');
+  title.className='title';
+  title.id=`task-title-${key}-${t.id}`;
+  title.textContent=t.title||'';
+  if(t.completed){
+    title.className+=' strike';
+  }
+
+  const spacer=document.createElement('div');
+  spacer.className='spacer';
+
+  const actions=document.createElement('div');
+  actions.className='row-actions';
+  actions.setAttribute('role','group');
+  actions.setAttribute('aria-label',`Actions for ${t.title}`);
+
+  const decat=document.createElement('button');
+  decat.className='btn pill ghost';
+  decat.setAttribute('aria-label',`Reset category for ${t.title}`);
+  decat.title='Reset category';
+  decat.textContent='Reset Category';
+  decat.onclick=()=>{
+    t.quadrant=null;
+    t.rank=null;
+    t.updatedAt=Date.now();
+    saveLocal();
+    queueUpload();
+    markForUpdate(['step1','step2','step3']);
+    render();
+  };
+
+  actions.append(decat);
+  header.append(title,spacer,actions);
+  li.append(header);
+
+  const subtasksSection=createSubtaskDetails(t, { emptyText:'No subtasks yet', compact:true });
+  li.append(subtasksSection);
+
+  return li;
+}
 
 /* ========= Settings modal ========= */
 const modal=document.getElementById('settingsModal');
@@ -1120,7 +1406,7 @@ const modal=document.getElementById('settingsModal');
 
 function applyFont(f){ document.documentElement.style.setProperty('--font-family', f); saveUserSettings(); }
 function exportTasks(){ const data={ tasks, settings: JSON.parse(localStorage.getItem('covey_settings')||'{}'), exported:new Date().toISOString() }; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`covey-todo-${new Date().toISOString().split('T')[0]}.json`; a.click(); URL.revokeObjectURL(url); showSuccess('Tasks exported'); }
-function importTasks(file){ if(!file) return; const r=new FileReader(); r.onload=(e)=>{ try{ const data=JSON.parse(e.target.result); if(data.tasks && Array.isArray(data.tasks)){ if(confirm(`Import ${data.tasks.length} tasks? This will replace your current tasks.`)){ tasks=data.tasks; saveLocal(); queueUpload(); markForUpdate(['step1','step2','step3']); renderState.suggestions=true; render(); showSuccess(`Imported ${data.tasks.length} tasks`); } } else { showError('Invalid file format'); } } catch(err){ console.error('Import error:',err); showError('Failed to import tasks'); } }; r.readAsText(file); el.importFile.value=''; }
+function importTasks(file){ if(!file) return; const r=new FileReader(); r.onload=(e)=>{ try{ const data=JSON.parse(e.target.result); if(data.tasks && Array.isArray(data.tasks)){ if(confirm(`Import ${data.tasks.length} tasks? This will replace your current tasks.`)){ tasks=data.tasks; normalizeAllTasks(); saveLocal(); queueUpload(); markForUpdate(['step1','step2','step3']); renderState.suggestions=true; render(); showSuccess(`Imported ${data.tasks.length} tasks`); } } else { showError('Invalid file format'); } } catch(err){ console.error('Import error:',err); showError('Failed to import tasks'); } }; r.readAsText(file); el.importFile.value=''; }
 function saveUserSettings(){ try{ const s={ fontFamily: el.fontSelect?.value || 'system-ui, -apple-system, \'Segoe UI\', Roboto, Inter, Arial, sans-serif', confirmDeletes: el.confirmDeletes?.checked !== false, enableAnimations: el.enableAnimations?.checked !== false, autoFocusInput: el.autoFocusInput?.checked !== false }; localStorage.setItem('covey_settings', JSON.stringify(s)); }catch(e){ console.warn('Could not save settings:', e); }}
 function loadUserSettings(){ try{ const s=JSON.parse(localStorage.getItem('covey_settings')||'{}'); if(s.fontFamily){ document.documentElement.style.setProperty('--font-family', s.fontFamily); } return s; }catch(e){ return {}; }}
 
@@ -1165,6 +1451,7 @@ function initializeFirebase(){ try{
         const remoteUpdated = Number(data.updatedAt || 0);
         if(remoteUpdated > lastPushedAt){
           tasks = remoteTasks;
+          normalizeAllTasks();
           saveLocal();
           markForUpdate(['step1','step2','step3']);
           render();
