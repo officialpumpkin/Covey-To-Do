@@ -809,6 +809,10 @@ function renderPrioritise() {
   if (unprioritized && !currentPriorityTask) {
     currentPriorityTask = unprioritized;
     priorityQuestionType = 'urgency';
+    
+    // Initialize temp values from task if they exist
+    tempTimeframeValue = unprioritized.timeframeValue || 1;
+    tempTimeframeUnit = unprioritized.timeframeUnit || 'weeks';
   }
 
   if (currentPriorityTask) {
@@ -909,41 +913,121 @@ function renderPrioritise() {
 function renderPriorityQuestion() {
   if (!currentPriorityTask) return;
   
-  const questionText = priorityQuestionType === 'urgency' 
-    ? 'How urgent is this task?' 
-    : 'How important is this task?';
+  if (priorityQuestionType === 'urgency') {
+    // Show timeframe selector for urgency
+    const currentUnit = currentPriorityTask.timeframeUnit || 'weeks';
+    const currentValue = currentPriorityTask.timeframeValue || 1;
     
-  const subText = priorityQuestionType === 'urgency'
-    ? 'On a scale of 1-10 how time sensitive is this?'
-    : 'How critical is this to your goals? Would missing this significantly impact you?';
-  
-  el.prioritiseBox.innerHTML = `
-    <div style="text-align: center; padding: 20px;">
-      <div class="sec-title" style="margin-bottom: 20px;">${questionText}</div>
-      <div class="task" style="margin: 16px auto; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
-        <div class="title">${escapeHtml(currentPriorityTask.title)}</div>
+    // Define ranges for each unit
+    const unitRanges = {
+      days: { min: 1, max: 6 },
+      weeks: { min: 1, max: 3 },
+      months: { min: 1, max: 11 },
+      years: { min: 1, max: 10 }
+    };
+    
+    const range = unitRanges[currentUnit];
+    
+    el.prioritiseBox.innerHTML = `
+      <div style="text-align: center; padding: 20px;">
+        <div class="sec-title" style="margin-bottom: 20px;">How long do you need to complete this task?</div>
+        <div class="task" style="margin: 16px auto; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div class="title">${escapeHtml(currentPriorityTask.title)}</div>
+        </div>
+        <p style="color: var(--muted); font-size: 14px; margin: 16px 0 24px;">Select your timeframe:</p>
+        
+        <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 24px; flex-wrap: wrap;">
+          <button class="btn pill ${currentUnit === 'days' ? 'primary' : 'ghost'}" onclick="changeTimeframeUnit('days')">Days</button>
+          <button class="btn pill ${currentUnit === 'weeks' ? 'primary' : 'ghost'}" onclick="changeTimeframeUnit('weeks')">Weeks</button>
+          <button class="btn pill ${currentUnit === 'months' ? 'primary' : 'ghost'}" onclick="changeTimeframeUnit('months')">Months</button>
+          <button class="btn pill ${currentUnit === 'years' ? 'primary' : 'ghost'}" onclick="changeTimeframeUnit('years')">Years</button>
+        </div>
+        
+        <div style="max-width: 400px; margin: 0 auto;">
+          <div style="font-size: 24px; font-weight: 700; color: var(--accent); margin-bottom: 16px;">
+            <span id="timeframeValue">${currentValue}</span> <span id="timeframeUnitLabel">${currentUnit}</span>
+          </div>
+          
+          <input type="range" 
+            id="timeframeSlider" 
+            min="${range.min}" 
+            max="${range.max}" 
+            value="${currentValue}" 
+            style="width: 100%; height: 8px; border-radius: 4px; outline: none; background: linear-gradient(to right, var(--accent) 0%, var(--accent) ${((currentValue - range.min) / (range.max - range.min)) * 100}%, var(--border) ${((currentValue - range.min) / (range.max - range.min)) * 100}%, var(--border) 100%); cursor: pointer; -webkit-appearance: none; appearance: none;"
+            oninput="updateTimeframeSlider(this.value)"
+          />
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+            <span style="font-size: 12px; color: var(--muted);">${range.min} = Minimum</span>
+            <span style="font-size: 12px; color: var(--muted);">${range.max} = Maximum</span>
+          </div>
+        </div>
+        
+        <div style="margin-top: 32px;">
+          <button class="btn pill primary" onclick="confirmTimeframe()" style="min-width: 200px;">Continue</button>
+        </div>
       </div>
-      <p style="color: var(--muted); font-size: 14px; margin: 16px 0 24px;">${subText}</p>
-      
-      <div class="priority-rating-grid">
-        ${Array.from({length: 10}, (_, i) => {
-          const rating = i + 1;
-          return `<button class="btn pill priority-rating-btn" data-rating="${rating}" onclick="setPriorityRating(${rating})">${rating}</button>`;
-        }).join('')}
-      </div>
-      
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
-        <span style="font-size: 12px; color: var(--muted);">1 = Very Low</span>
-        <span style="font-size: 12px; color: var(--muted);">10 = Very High</span>
-      </div>
-      
-      ${priorityQuestionType === 'importance' ? `
+    `;
+    
+    // Add custom slider styling
+    const style = document.createElement('style');
+    style.textContent = `
+      #timeframeSlider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--accent);
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      }
+      #timeframeSlider::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--accent);
+        cursor: pointer;
+        border: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      }
+    `;
+    if (!document.getElementById('timeframe-slider-styles')) {
+      style.id = 'timeframe-slider-styles';
+      document.head.appendChild(style);
+    }
+    
+  } else {
+    // Show importance rating (unchanged)
+    const questionText = 'How important is this task?';
+    const subText = 'How critical is this to your goals? Would missing this significantly impact you?';
+    
+    el.prioritiseBox.innerHTML = `
+      <div style="text-align: center; padding: 20px;">
+        <div class="sec-title" style="margin-bottom: 20px;">${questionText}</div>
+        <div class="task" style="margin: 16px auto; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div class="title">${escapeHtml(currentPriorityTask.title)}</div>
+        </div>
+        <p style="color: var(--muted); font-size: 14px; margin: 16px 0 24px;">${subText}</p>
+        
+        <div class="priority-rating-grid">
+          ${Array.from({length: 10}, (_, i) => {
+            const rating = i + 1;
+            return `<button class="btn pill priority-rating-btn" data-rating="${rating}" onclick="setPriorityRating(${rating})">${rating}</button>`;
+          }).join('')}
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+          <span style="font-size: 12px; color: var(--muted);">1 = Very Low</span>
+          <span style="font-size: 12px; color: var(--muted);">10 = Very High</span>
+        </div>
+        
         <div style="margin-top: 20px;">
           <button class="btn pill ghost" onclick="goBackToPriorityRating()" style="margin-right: 8px;">Back</button>
         </div>
-      ` : ''}
-    </div>
-  `;
+      </div>
+    `;
+  }
 }
 
 function setPriorityRating(rating) {
@@ -988,12 +1072,88 @@ function goBackToPriorityRating() {
   renderPriorityQuestion();
 }
 
+// Timeframe selector state
+let tempTimeframeValue = 1;
+let tempTimeframeUnit = 'weeks';
+
+function changeTimeframeUnit(unit) {
+  tempTimeframeUnit = unit;
+  
+  // Reset value to 1 when changing units
+  tempTimeframeValue = 1;
+  
+  renderPriorityQuestion();
+}
+
+function updateTimeframeSlider(value) {
+  tempTimeframeValue = parseInt(value);
+  
+  const valueDisplay = document.getElementById('timeframeValue');
+  const unitLabel = document.getElementById('timeframeUnitLabel');
+  const slider = document.getElementById('timeframeSlider');
+  
+  if (valueDisplay) valueDisplay.textContent = value;
+  if (unitLabel) unitLabel.textContent = tempTimeframeUnit;
+  
+  // Update slider background gradient
+  if (slider) {
+    const min = parseInt(slider.min);
+    const max = parseInt(slider.max);
+    const percent = ((value - min) / (max - min)) * 100;
+    slider.style.background = `linear-gradient(to right, var(--accent) 0%, var(--accent) ${percent}%, var(--border) ${percent}%, var(--border) 100%)`;
+  }
+}
+
+function confirmTimeframe() {
+  if (!currentPriorityTask) return;
+  
+  // Store timeframe values
+  currentPriorityTask.timeframeValue = tempTimeframeValue;
+  currentPriorityTask.timeframeUnit = tempTimeframeUnit;
+  
+  // Calculate target date
+  const now = Date.now();
+  let daysToAdd = 0;
+  
+  switch (tempTimeframeUnit) {
+    case 'days':
+      daysToAdd = tempTimeframeValue;
+      break;
+    case 'weeks':
+      daysToAdd = tempTimeframeValue * 7;
+      break;
+    case 'months':
+      daysToAdd = tempTimeframeValue * 30;
+      break;
+    case 'years':
+      daysToAdd = tempTimeframeValue * 365;
+      break;
+  }
+  
+  currentPriorityTask.targetDate = now + (daysToAdd * 24 * 60 * 60 * 1000);
+  
+  // Calculate urgency from timeframe (will be implemented in Task 3.0)
+  // For now, set a placeholder value
+  currentPriorityTask.urgency = 5;
+  
+  currentPriorityTask.updatedAt = nowMs();
+  
+  // Move to importance question
+  priorityQuestionType = 'importance';
+  renderPriorityQuestion();
+}
+
 function editTaskPriority(taskId) {
   const task = tasks.find(t => t.id === taskId);
   if (!task) return;
   
   currentPriorityTask = task;
   priorityQuestionType = 'urgency';
+  
+  // Initialize temp values from task if they exist
+  tempTimeframeValue = task.timeframeValue || 1;
+  tempTimeframeUnit = task.timeframeUnit || 'weeks';
+  
   renderPriorityQuestion();
 }
 
