@@ -915,8 +915,8 @@ function renderPriorityQuestion() {
   
   if (priorityQuestionType === 'urgency') {
     // Show timeframe selector for urgency
-    const currentUnit = currentPriorityTask.timeframeUnit || 'weeks';
-    const currentValue = currentPriorityTask.timeframeValue || 1;
+    const currentUnit = tempTimeframeUnit;
+    const currentValue = tempTimeframeValue;
     
     // Define ranges for each unit
     const unitRanges = {
@@ -927,6 +927,16 @@ function renderPriorityQuestion() {
     };
     
     const range = unitRanges[currentUnit];
+    
+    // Helper function to get singular/plural unit name
+    const getUnitLabel = (value, unit) => {
+      if (value === 1) {
+        return unit.slice(0, -1); // Remove 's' for singular
+      }
+      return unit;
+    };
+    
+    const unitLabel = getUnitLabel(currentValue, currentUnit);
     
     el.prioritiseBox.innerHTML = `
       <div style="text-align: center; padding: 20px;">
@@ -945,7 +955,7 @@ function renderPriorityQuestion() {
         
         <div style="max-width: 400px; margin: 0 auto;">
           <div style="font-size: 24px; font-weight: 700; color: var(--accent); margin-bottom: 16px;">
-            <span id="timeframeValue">${currentValue}</span> <span id="timeframeUnitLabel">${currentUnit}</span>
+            <span id="timeframeValue">${currentValue}</span> <span id="timeframeUnitLabel">${unitLabel}</span>
           </div>
           
           <input type="range" 
@@ -1079,8 +1089,18 @@ let tempTimeframeUnit = 'weeks';
 function changeTimeframeUnit(unit) {
   tempTimeframeUnit = unit;
   
-  // Reset value to 1 when changing units
-  tempTimeframeValue = 1;
+  // Define ranges for each unit
+  const unitRanges = {
+    days: { min: 1, max: 6 },
+    weeks: { min: 1, max: 3 },
+    months: { min: 1, max: 11 },
+    years: { min: 1, max: 10 }
+  };
+  
+  const range = unitRanges[unit];
+  
+  // Reset value to minimum of new range
+  tempTimeframeValue = range.min;
   
   renderPriorityQuestion();
 }
@@ -1092,8 +1112,16 @@ function updateTimeframeSlider(value) {
   const unitLabel = document.getElementById('timeframeUnitLabel');
   const slider = document.getElementById('timeframeSlider');
   
+  // Helper function to get singular/plural unit name
+  const getUnitLabel = (val, unit) => {
+    if (val === 1) {
+      return unit.slice(0, -1); // Remove 's' for singular
+    }
+    return unit;
+  };
+  
   if (valueDisplay) valueDisplay.textContent = value;
-  if (unitLabel) unitLabel.textContent = tempTimeframeUnit;
+  if (unitLabel) unitLabel.textContent = getUnitLabel(parseInt(value), tempTimeframeUnit);
   
   // Update slider background gradient
   if (slider) {
