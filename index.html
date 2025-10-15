@@ -1164,7 +1164,7 @@ function initializeFirebase(){ try{
         const remoteTasks = Array.isArray(data.tasks)? data.tasks : [];
         const remoteUpdated = Number(data.updatedAt || 0);
         if(remoteUpdated > lastPushedAt){
-          tasks = remoteTasks;
+          tasks = remoteTasks.map(task => ({ ...task, timeframeValue: task.timeframeValue !== undefined ? task.timeframeValue : null, timeframeUnit: task.timeframeUnit !== undefined ? task.timeframeUnit : null, targetDate: task.targetDate !== undefined ? task.targetDate : null }));
           saveLocal();
           markForUpdate(['step1','step2','step3']);
           render();
