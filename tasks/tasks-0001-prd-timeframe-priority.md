@@ -13,7 +13,10 @@
 
 ## Tasks
 
-- [ ] 1.0 Update Data Structure and Storage
+- [x] 1.0 Update Data Structure and Storage
+  - [x] 1.1 Add timeframe fields to task data structure (timeframeValue, timeframeUnit, targetDate)
+  - [x] 1.2 Update localStorage load function to initialize new fields for backward compatibility
+  - [x] 1.3 Update Firestore sync to handle new fields when loading remote data
 - [ ] 2.0 Create Timeframe Selector UI Components
 - [ ] 3.0 Implement Timeframe to Urgency Conversion Logic
 - [ ] 4.0 Update Task Display to Show Timeframes
