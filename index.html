@@ -813,6 +813,7 @@ function renderPrioritise() {
     // Initialize temp values from task if they exist
     tempTimeframeValue = unprioritized.timeframeValue || 1;
     tempTimeframeUnit = unprioritized.timeframeUnit || 'weeks';
+    accumulatedDays = 0; // Reset accumulator for new task
   }
 
   if (currentPriorityTask) {
@@ -937,6 +938,7 @@ function renderPriorityQuestion() {
     };
     
     const unitLabel = getUnitLabel(currentValue, currentUnit);
+    const accumulatedText = formatAccumulatedTime(accumulatedDays);
     
     el.prioritiseBox.innerHTML = `
       <div style="text-align: center; padding: 20px;">
@@ -944,6 +946,13 @@ function renderPriorityQuestion() {
         <div class="task" style="margin: 16px auto; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
           <div class="title">${escapeHtml(currentPriorityTask.title)}</div>
         </div>
+        ${accumulatedDays > 0 ? `
+          <div style="background: rgba(37, 99, 235, 0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 12px; margin: 16px auto; max-width: 400px;">
+            <div style="font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 4px;">Accumulated Timeframe:</div>
+            <div style="font-size: 16px; font-weight: 700; color: var(--text);">${accumulatedText}</div>
+            <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">${accumulatedDays} total days</div>
+          </div>
+        ` : ''}
         <p style="color: var(--muted); font-size: 14px; margin: 16px 0 24px;">Select your timeframe:</p>
         
         <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 24px; flex-wrap: wrap;">
@@ -973,7 +982,9 @@ function renderPriorityQuestion() {
           </div>
         </div>
         
-        <div style="margin-top: 32px;">
+        <div style="margin-top: 32px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+          <button class="btn pill ghost" onclick="addTimeToAccumulator()" style="min-width: 140px;">+ Add Time</button>
+          ${accumulatedDays > 0 ? `<button class="btn pill ghost" onclick="clearAccumulatedTime()" style="min-width: 100px;">Clear</button>` : ''}
           <button class="btn pill primary" onclick="confirmTimeframe()" style="min-width: 200px;">Continue</button>
         </div>
       </div>
@@ -1085,6 +1096,7 @@ function goBackToPriorityRating() {
 // Timeframe selector state
 let tempTimeframeValue = 1;
 let tempTimeframeUnit = 'weeks';
+let accumulatedDays = 0; // Track accumulated time in days
 
 function changeTimeframeUnit(unit) {
   tempTimeframeUnit = unit;
@@ -1103,6 +1115,63 @@ function changeTimeframeUnit(unit) {
   tempTimeframeValue = range.min;
   
   renderPriorityQuestion();
+}
+
+function addTimeToAccumulator() {
+  // Convert current selection to days and add to accumulator
+  let daysToAdd = 0;
+  
+  switch (tempTimeframeUnit) {
+    case 'days':
+      daysToAdd = tempTimeframeValue;
+      break;
+    case 'weeks':
+      daysToAdd = tempTimeframeValue * 7;
+      break;
+    case 'months':
+      daysToAdd = tempTimeframeValue * 30;
+      break;
+    case 'years':
+      daysToAdd = tempTimeframeValue * 365;
+      break;
+  }
+  
+  accumulatedDays += daysToAdd;
+  
+  // Reset slider to minimum after adding
+  const unitRanges = {
+    days: { min: 1, max: 6 },
+    weeks: { min: 1, max: 3 },
+    months: { min: 1, max: 11 },
+    years: { min: 1, max: 10 }
+  };
+  tempTimeframeValue = unitRanges[tempTimeframeUnit].min;
+  
+  renderPriorityQuestion();
+  showSuccess(`Added ${daysToAdd} days to timeframe`);
+}
+
+function clearAccumulatedTime() {
+  accumulatedDays = 0;
+  renderPriorityQuestion();
+  showSuccess('Timeframe reset');
+}
+
+function formatAccumulatedTime(totalDays) {
+  if (totalDays === 0) return '';
+  
+  const years = Math.floor(totalDays / 365);
+  const months = Math.floor((totalDays % 365) / 30);
+  const weeks = Math.floor(((totalDays % 365) % 30) / 7);
+  const days = ((totalDays % 365) % 30) % 7;
+  
+  const parts = [];
+  if (years > 0) parts.push(`${years} year${years > 1 ? 's' : ''}`);
+  if (months > 0) parts.push(`${months} month${months > 1 ? 's' : ''}`);
+  if (weeks > 0) parts.push(`${weeks} week${weeks > 1 ? 's' : ''}`);
+  if (days > 0) parts.push(`${days} day${days > 1 ? 's' : ''}`);
+  
+  return parts.join(' + ');
 }
 
 function updateTimeframeSlider(value) {
@@ -1135,36 +1204,42 @@ function updateTimeframeSlider(value) {
 function confirmTimeframe() {
   if (!currentPriorityTask) return;
   
-  // Store timeframe values
-  currentPriorityTask.timeframeValue = tempTimeframeValue;
-  currentPriorityTask.timeframeUnit = tempTimeframeUnit;
-  
-  // Calculate target date
-  const now = Date.now();
-  let daysToAdd = 0;
+  // Calculate total days including accumulated time and current selection
+  let currentSelectionDays = 0;
   
   switch (tempTimeframeUnit) {
     case 'days':
-      daysToAdd = tempTimeframeValue;
+      currentSelectionDays = tempTimeframeValue;
       break;
     case 'weeks':
-      daysToAdd = tempTimeframeValue * 7;
+      currentSelectionDays = tempTimeframeValue * 7;
       break;
     case 'months':
-      daysToAdd = tempTimeframeValue * 30;
+      currentSelectionDays = tempTimeframeValue * 30;
       break;
     case 'years':
-      daysToAdd = tempTimeframeValue * 365;
+      currentSelectionDays = tempTimeframeValue * 365;
       break;
   }
   
-  currentPriorityTask.targetDate = now + (daysToAdd * 24 * 60 * 60 * 1000);
+  const totalDays = accumulatedDays + currentSelectionDays;
+  
+  // Store timeframe values (keep last unit selected for display purposes)
+  currentPriorityTask.timeframeValue = tempTimeframeValue;
+  currentPriorityTask.timeframeUnit = tempTimeframeUnit;
+  
+  // Calculate target date using total days
+  const now = Date.now();
+  currentPriorityTask.targetDate = now + (totalDays * 24 * 60 * 60 * 1000);
   
   // Calculate urgency from timeframe (will be implemented in Task 3.0)
   // For now, set a placeholder value
   currentPriorityTask.urgency = 5;
   
   currentPriorityTask.updatedAt = nowMs();
+  
+  // Reset accumulator
+  accumulatedDays = 0;
   
   // Move to importance question
   priorityQuestionType = 'importance';
@@ -1181,6 +1256,7 @@ function editTaskPriority(taskId) {
   // Initialize temp values from task if they exist
   tempTimeframeValue = task.timeframeValue || 1;
   tempTimeframeUnit = task.timeframeUnit || 'weeks';
+  accumulatedDays = 0; // Reset accumulator when editing
   
   renderPriorityQuestion();
 }
