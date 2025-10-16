@@ -1097,8 +1097,17 @@ function goBackToPriorityRating() {
 let tempTimeframeValue = 1;
 let tempTimeframeUnit = 'weeks';
 let accumulatedDays = 0; // Track accumulated time in days
+let timeframeMemory = { // Remember last slider position for each unit
+  days: 1,
+  weeks: 1,
+  months: 1,
+  years: 1
+};
 
 function changeTimeframeUnit(unit) {
+  // Save current value to memory before switching
+  timeframeMemory[tempTimeframeUnit] = tempTimeframeValue;
+  
   tempTimeframeUnit = unit;
   
   // Define ranges for each unit
@@ -1111,8 +1120,9 @@ function changeTimeframeUnit(unit) {
   
   const range = unitRanges[unit];
   
-  // Reset value to minimum of new range
-  tempTimeframeValue = range.min;
+  // Restore remembered value for this unit (or use minimum if out of range)
+  const rememberedValue = timeframeMemory[unit] || range.min;
+  tempTimeframeValue = Math.max(range.min, Math.min(range.max, rememberedValue));
   
   renderPriorityQuestion();
 }
@@ -1146,6 +1156,7 @@ function addTimeToAccumulator() {
     years: { min: 1, max: 10 }
   };
   tempTimeframeValue = unitRanges[tempTimeframeUnit].min;
+  timeframeMemory[tempTimeframeUnit] = tempTimeframeValue; // Update memory
   
   renderPriorityQuestion();
   showSuccess(`Added ${daysToAdd} days to timeframe`);
@@ -1176,6 +1187,9 @@ function formatAccumulatedTime(totalDays) {
 
 function updateTimeframeSlider(value) {
   tempTimeframeValue = parseInt(value);
+  
+  // Save to memory as user slides
+  timeframeMemory[tempTimeframeUnit] = tempTimeframeValue;
   
   const valueDisplay = document.getElementById('timeframeValue');
   const unitLabel = document.getElementById('timeframeUnitLabel');
