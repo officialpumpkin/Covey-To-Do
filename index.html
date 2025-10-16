@@ -1246,9 +1246,8 @@ function confirmTimeframe() {
   const now = Date.now();
   currentPriorityTask.targetDate = now + (totalDays * 24 * 60 * 60 * 1000);
   
-  // Calculate urgency from timeframe (will be implemented in Task 3.0)
-  // For now, set a placeholder value
-  currentPriorityTask.urgency = 5;
+  // Calculate urgency from timeframe using conversion algorithm
+  currentPriorityTask.urgency = calculateUrgencyFromTimeframe(totalDays);
   
   currentPriorityTask.updatedAt = nowMs();
   
@@ -1258,6 +1257,28 @@ function confirmTimeframe() {
   // Move to importance question
   priorityQuestionType = 'importance';
   renderPriorityQuestion();
+}
+
+/**
+ * Converts timeframe (in days) to urgency score (1-10)
+ * Uses logarithmic scaling to provide intuitive urgency ratings:
+ * - 1 day or less = 10 (most urgent)
+ * - 1 week = 8
+ * - 1 month = 5
+ * - 6 months = 3
+ * - 1 year or more = 1 (least urgent)
+ */
+function calculateUrgencyFromTimeframe(totalDays) {
+  if (totalDays <= 0) return 10; // Immediate/overdue
+  if (totalDays <= 1) return 10; // Today
+  if (totalDays <= 2) return 9;  // Tomorrow
+  if (totalDays <= 7) return 8;  // This week
+  if (totalDays <= 14) return 7; // 2 weeks
+  if (totalDays <= 30) return 5; // 1 month
+  if (totalDays <= 60) return 4; // 2 months
+  if (totalDays <= 180) return 3; // 6 months
+  if (totalDays <= 365) return 2; // 1 year
+  return 1; // More than 1 year
 }
 
 function editTaskPriority(taskId) {
