@@ -415,7 +415,7 @@ let renderState = { step1:true, step2:true, step3:true, step4:true, suggestions:
 
 function debounce(func, wait){ let timeout; return function(...args){ clearTimeout(timeout); timeout=setTimeout(()=>func.apply(this,args), wait); }; }
 
-function loadLocal(){ try{ const data = localStorage.getItem(STORAGE_KEY); if(!data) return []; const parsed = JSON.parse(data); if(!Array.isArray(parsed)) return []; return parsed.map(task => ({ ...task, timeframeValue: task.timeframeValue !== undefined ? task.timeframeValue : null, timeframeUnit: task.timeframeUnit !== undefined ? task.timeframeUnit : null, targetDate: task.targetDate !== undefined ? task.targetDate : null })); }catch(e){ console.error('Failed to load from localStorage:', e); return []; } }
+function loadLocal(){ try{ const data = localStorage.getItem(STORAGE_KEY); if(!data) return []; const parsed = JSON.parse(data); if(!Array.isArray(parsed)) return []; return parsed.map(task => ({ ...task, duration: task.duration || null, targetDate: task.targetDate !== undefined ? task.targetDate : null })); }catch(e){ console.error('Failed to load from localStorage:', e); return []; } }
 function saveLocal(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }catch(e){ console.error('Failed to save to localStorage:', e); }}
 function uid(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
 function nowMs(){ return Date.now(); }
@@ -519,7 +519,7 @@ function initializeEventHandlers() {
   // Add form
   if (el.addForm) {
     el.addForm.onsubmit=(e)=>{ e.preventDefault(); const v=el.taskInput.value.trim(); if(!v){ showError('Please enter a task description'); el.taskInput.focus(); return; } if(v.length>200){ showError('Task description must be less than 200 characters'); el.taskInput.focus(); return; } if(tasks.some(t=> (t.title||'').toLowerCase()===v.toLowerCase())){ showError('A task with this description already exists'); el.taskInput.focus(); return; }
-      addLoadingState(el.addForm); try{ tasks.unshift({id:uid(), title:v, completed:false, quadrant:null, rank:null, urgency:5, importance:5, timeframeValue:null, timeframeUnit:null, targetDate:null, createdAt:nowMs(), updatedAt:nowMs()}); el.taskInput.value=''; saveLocal(); queueUpload(); markForUpdate(['step1']); renderState.suggestions=true; render(); removeLoadingState(el.addForm); addSuccessFlash(el.inboxList); showSuccess('Task added successfully'); setTimeout(()=> el.taskInput.focus(),100); }catch(err){ removeLoadingState(el.addForm); console.error(err); showError('Failed to add task.'); }
+      addLoadingState(el.addForm); try{ tasks.unshift({id:uid(), title:v, completed:false, quadrant:null, rank:null, urgency:5, importance:5, duration:null, targetDate:null, createdAt:nowMs(), updatedAt:nowMs()}); el.taskInput.value=''; saveLocal(); queueUpload(); markForUpdate(['step1']); renderState.suggestions=true; render(); removeLoadingState(el.addForm); addSuccessFlash(el.inboxList); showSuccess('Task added successfully'); setTimeout(()=> el.taskInput.focus(),100); }catch(err){ removeLoadingState(el.addForm); console.error(err); showError('Failed to add task.'); }
     };
   }
   
@@ -916,8 +916,7 @@ function renderPriorityQuestion() {
   
   if (priorityQuestionType === 'urgency') {
     // Show timeframe selector for urgency
-    const currentUnit = tempTimeframeUnit;
-    const currentValue = tempTimeframeValue;
+    const currentValue = tempDuration[currentUnit] || 1;
     
     // Define ranges for each unit
     const unitRanges = {
@@ -938,7 +937,8 @@ function renderPriorityQuestion() {
     };
     
     const unitLabel = getUnitLabel(currentValue, currentUnit);
-    const accumulatedText = formatAccumulatedTime(accumulatedDays);
+    const totalDays = parseDurationToDays(createDuration(tempDuration.years, tempDuration.months, tempDuration.weeks, tempDuration.days));
+    const durationText = formatDuration(createDuration(tempDuration.years, tempDuration.months, tempDuration.weeks, tempDuration.days));
     
     el.prioritiseBox.innerHTML = `
       <div style="text-align: center; padding: 20px;">
@@ -946,11 +946,11 @@ function renderPriorityQuestion() {
         <div class="task" style="margin: 16px auto; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
           <div class="title">${escapeHtml(currentPriorityTask.title)}</div>
         </div>
-        ${accumulatedDays > 0 ? `
+        ${totalDays > 0 && durationText ? `
           <div style="background: rgba(37, 99, 235, 0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 12px; margin: 16px auto; max-width: 400px;">
-            <div style="font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 4px;">Accumulated Timeframe:</div>
-            <div style="font-size: 16px; font-weight: 700; color: var(--text);">${accumulatedText}</div>
-            <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">${accumulatedDays} total days</div>
+            <div style="font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 4px;">Total Timeframe:</div>
+            <div style="font-size: 16px; font-weight: 700; color: var(--text);">${durationText}</div>
+            <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">${totalDays} total days</div>
           </div>
         ` : ''}
         <p style="color: var(--muted); font-size: 14px; margin: 16px 0 24px;">Select your timeframe:</p>
@@ -983,8 +983,7 @@ function renderPriorityQuestion() {
         </div>
         
         <div style="margin-top: 32px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-          <button class="btn pill ghost" onclick="addTimeToAccumulator()" style="min-width: 140px;">+ Add Time</button>
-          ${accumulatedDays > 0 ? `<button class="btn pill ghost" onclick="clearAccumulatedTime()" style="min-width: 100px;">Clear</button>` : ''}
+          ${totalDays > 0 ? `<button class="btn pill ghost" onclick="resetDuration()" style="min-width: 100px;">Reset</button>` : ''}
           <button class="btn pill primary" onclick="confirmTimeframe()" style="min-width: 200px;">Continue</button>
         </div>
       </div>
@@ -1093,10 +1092,9 @@ function goBackToPriorityRating() {
   renderPriorityQuestion();
 }
 
-// Timeframe selector state
-let tempTimeframeValue = 1;
-let tempTimeframeUnit = 'weeks';
-let accumulatedDays = 0; // Track accumulated time in days
+// Timeframe selector state - using ISO 8601 duration components
+let tempDuration = { years: 0, months: 0, weeks: 1, days: 0 };
+let currentUnit = 'weeks';
 let timeframeMemory = { // Remember last slider position for each unit
   days: 1,
   weeks: 1,
@@ -1105,10 +1103,7 @@ let timeframeMemory = { // Remember last slider position for each unit
 };
 
 function changeTimeframeUnit(unit) {
-  // Save current value to memory before switching
-  timeframeMemory[tempTimeframeUnit] = tempTimeframeValue;
-  
-  tempTimeframeUnit = unit;
+  currentUnit = unit;
   
   // Define ranges for each unit
   const unitRanges = {
@@ -1120,76 +1115,26 @@ function changeTimeframeUnit(unit) {
   
   const range = unitRanges[unit];
   
-  // Restore remembered value for this unit (or use minimum if out of range)
+  // Restore remembered value or use minimum
   const rememberedValue = timeframeMemory[unit] || range.min;
-  tempTimeframeValue = Math.max(range.min, Math.min(range.max, rememberedValue));
+  tempDuration[unit] = Math.max(range.min, Math.min(range.max, rememberedValue));
   
   renderPriorityQuestion();
 }
 
-function addTimeToAccumulator() {
-  // Convert current selection to days and add to accumulator
-  let daysToAdd = 0;
-  
-  switch (tempTimeframeUnit) {
-    case 'days':
-      daysToAdd = tempTimeframeValue;
-      break;
-    case 'weeks':
-      daysToAdd = tempTimeframeValue * 7;
-      break;
-    case 'months':
-      daysToAdd = tempTimeframeValue * 30;
-      break;
-    case 'years':
-      daysToAdd = tempTimeframeValue * 365;
-      break;
-  }
-  
-  accumulatedDays += daysToAdd;
-  
-  // Reset slider to minimum after adding
-  const unitRanges = {
-    days: { min: 1, max: 6 },
-    weeks: { min: 1, max: 3 },
-    months: { min: 1, max: 11 },
-    years: { min: 1, max: 10 }
-  };
-  tempTimeframeValue = unitRanges[tempTimeframeUnit].min;
-  timeframeMemory[tempTimeframeUnit] = tempTimeframeValue; // Update memory
-  
-  renderPriorityQuestion();
-  showSuccess(`Added ${daysToAdd} days to timeframe`);
-}
-
-function clearAccumulatedTime() {
-  accumulatedDays = 0;
+function resetDuration() {
+  tempDuration = { years: 0, months: 0, weeks: 0, days: 0 };
+  tempDuration[currentUnit] = 1;
   renderPriorityQuestion();
   showSuccess('Timeframe reset');
 }
 
-function formatAccumulatedTime(totalDays) {
-  if (totalDays === 0) return '';
-  
-  const years = Math.floor(totalDays / 365);
-  const months = Math.floor((totalDays % 365) / 30);
-  const weeks = Math.floor(((totalDays % 365) % 30) / 7);
-  const days = ((totalDays % 365) % 30) % 7;
-  
-  const parts = [];
-  if (years > 0) parts.push(`${years} year${years > 1 ? 's' : ''}`);
-  if (months > 0) parts.push(`${months} month${months > 1 ? 's' : ''}`);
-  if (weeks > 0) parts.push(`${weeks} week${weeks > 1 ? 's' : ''}`);
-  if (days > 0) parts.push(`${days} day${days > 1 ? 's' : ''}`);
-  
-  return parts.join(' + ');
-}
-
 function updateTimeframeSlider(value) {
-  tempTimeframeValue = parseInt(value);
+  const intValue = parseInt(value);
+  tempDuration[currentUnit] = intValue;
   
   // Save to memory as user slides
-  timeframeMemory[tempTimeframeUnit] = tempTimeframeValue;
+  timeframeMemory[currentUnit] = intValue;
   
   const valueDisplay = document.getElementById('timeframeValue');
   const unitLabel = document.getElementById('timeframeUnitLabel');
@@ -1204,7 +1149,7 @@ function updateTimeframeSlider(value) {
   };
   
   if (valueDisplay) valueDisplay.textContent = value;
-  if (unitLabel) unitLabel.textContent = getUnitLabel(parseInt(value), tempTimeframeUnit);
+  if (unitLabel) unitLabel.textContent = getUnitLabel(intValue, currentUnit);
   
   // Update slider background gradient
   if (slider) {
@@ -1218,45 +1163,91 @@ function updateTimeframeSlider(value) {
 function confirmTimeframe() {
   if (!currentPriorityTask) return;
   
-  // Calculate total days including accumulated time and current selection
-  let currentSelectionDays = 0;
+  // Create ISO 8601 duration string
+  const duration = createDuration(tempDuration.years, tempDuration.months, tempDuration.weeks, tempDuration.days);
+  const totalDays = parseDurationToDays(duration);
   
-  switch (tempTimeframeUnit) {
-    case 'days':
-      currentSelectionDays = tempTimeframeValue;
-      break;
-    case 'weeks':
-      currentSelectionDays = tempTimeframeValue * 7;
-      break;
-    case 'months':
-      currentSelectionDays = tempTimeframeValue * 30;
-      break;
-    case 'years':
-      currentSelectionDays = tempTimeframeValue * 365;
-      break;
-  }
+  // Store duration in ISO 8601 format
+  currentPriorityTask.duration = duration;
   
-  const totalDays = accumulatedDays + currentSelectionDays;
-  
-  // Store timeframe values (keep last unit selected for display purposes)
-  currentPriorityTask.timeframeValue = tempTimeframeValue;
-  currentPriorityTask.timeframeUnit = tempTimeframeUnit;
-  
-  // Calculate target date using total days
+  // Calculate target date
   const now = Date.now();
   currentPriorityTask.targetDate = now + (totalDays * 24 * 60 * 60 * 1000);
   
-  // Calculate urgency from timeframe using conversion algorithm
+  // Calculate urgency from timeframe
   currentPriorityTask.urgency = calculateUrgencyFromTimeframe(totalDays);
   
   currentPriorityTask.updatedAt = nowMs();
   
-  // Reset accumulator
-  accumulatedDays = 0;
+  // Reset duration state
+  tempDuration = { years: 0, months: 0, weeks: 0, days: 0 };
+  tempDuration[currentUnit] = 1;
   
   // Move to importance question
   priorityQuestionType = 'importance';
   renderPriorityQuestion();
+}
+
+/**
+ * Converts ISO 8601 duration to total days
+ * Example: P1Y6M2W3D = 1 year + 6 months + 2 weeks + 3 days
+ */
+function parseDurationToDays(duration) {
+  if (!duration) return 0;
+  
+  const regex = /P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?/;
+  const match = duration.match(regex);
+  
+  if (!match) return 0;
+  
+  const years = parseInt(match[1] || 0);
+  const months = parseInt(match[2] || 0);
+  const weeks = parseInt(match[3] || 0);
+  const days = parseInt(match[4] || 0);
+  
+  return (years * 365) + (months * 30) + (weeks * 7) + days;
+}
+
+/**
+ * Creates ISO 8601 duration from components
+ * Example: createDuration(1, 6, 2, 3) = "P1Y6M2W3D"
+ */
+function createDuration(years = 0, months = 0, weeks = 0, days = 0) {
+  if (years === 0 && months === 0 && weeks === 0 && days === 0) return null;
+  
+  let duration = 'P';
+  if (years > 0) duration += `${years}Y`;
+  if (months > 0) duration += `${months}M`;
+  if (weeks > 0) duration += `${weeks}W`;
+  if (days > 0) duration += `${days}D`;
+  
+  return duration;
+}
+
+/**
+ * Formats duration for display
+ * Example: P1Y6M2W3D = "1 year, 6 months, 2 weeks, 3 days"
+ */
+function formatDuration(duration) {
+  if (!duration) return '';
+  
+  const regex = /P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?/;
+  const match = duration.match(regex);
+  
+  if (!match) return '';
+  
+  const parts = [];
+  const years = parseInt(match[1] || 0);
+  const months = parseInt(match[2] || 0);
+  const weeks = parseInt(match[3] || 0);
+  const days = parseInt(match[4] || 0);
+  
+  if (years > 0) parts.push(`${years} year${years > 1 ? 's' : ''}`);
+  if (months > 0) parts.push(`${months} month${months > 1 ? 's' : ''}`);
+  if (weeks > 0) parts.push(`${weeks} week${weeks > 1 ? 's' : ''}`);
+  if (days > 0) parts.push(`${days} day${days > 1 ? 's' : ''}`);
+  
+  return parts.join(', ');
 }
 
 /**
@@ -1288,10 +1279,22 @@ function editTaskPriority(taskId) {
   currentPriorityTask = task;
   priorityQuestionType = 'urgency';
   
-  // Initialize temp values from task if they exist
-  tempTimeframeValue = task.timeframeValue || 1;
-  tempTimeframeUnit = task.timeframeUnit || 'weeks';
-  accumulatedDays = 0; // Reset accumulator when editing
+  // Parse existing ISO 8601 duration if it exists
+  if (task.duration) {
+    const regex = /P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?/;
+    const match = task.duration.match(regex);
+    
+    if (match) {
+      tempDuration = {
+        years: parseInt(match[1] || 0),
+        months: parseInt(match[2] || 0),
+        weeks: parseInt(match[3] || 0),
+        days: parseInt(match[4] || 0)
+      };
+    }
+  } else {
+    tempDuration = { years: 0, months: 0, weeks: 1, days: 0 };
+  }
   
   renderPriorityQuestion();
 }
