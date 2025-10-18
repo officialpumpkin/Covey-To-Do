@@ -915,29 +915,27 @@ function renderPriorityQuestion() {
   if (!currentPriorityTask) return;
   
   if (priorityQuestionType === 'urgency') {
-    // Show timeframe selector for urgency
-    // Define ranges for each unit
-    const unitRanges = {
-      days: { min: 1, max: 6 },
-      weeks: { min: 1, max: 3 },
-      months: { min: 1, max: 11 },
-      years: { min: 1, max: 10 }
-    };
-    
-    const range = unitRanges[currentUnit];
-    
-    // Helper function to get singular/plural unit name
-    const getUnitLabel = (value, unit) => {
-      if (value === 1) {
-        return unit.slice(0, -1); // Remove 's' for singular
-      }
-      return unit;
-    };
-    
-    const unitLabel = getUnitLabel(currentUnitValue, currentUnit);
+    // Show timeframe selector with chips + steppers UI
     const existingDuration = currentPriorityTask.duration || null;
+    const components = existingDuration ? parseDuration(existingDuration) : { years: 0, months: 0, weeks: 0, days: 0 };
     const totalDays = existingDuration ? parseDurationToDays(existingDuration) : 0;
     const durationText = existingDuration ? formatDuration(existingDuration) : '';
+    
+    // Helper to create a stepper chip
+    const createStepperChip = (unit, value, max) => {
+      const label = unit.charAt(0).toUpperCase() + unit.slice(0, -1); // "Years" -> "Year", etc.
+      const isZero = value === 0;
+      return `
+        <div class="time-chip ${isZero ? 'collapsed' : 'expanded'}" data-unit="${unit}">
+          <div class="time-chip-label">${label}${value !== 1 ? 's' : ''}</div>
+          <div class="time-chip-stepper">
+            <button class="stepper-btn" onclick="adjustTimeUnit('${unit}', -1)" ${value === 0 ? 'disabled' : ''} aria-label="Decrease ${unit}">−</button>
+            <span class="time-value">${value}</span>
+            <button class="stepper-btn" onclick="adjustTimeUnit('${unit}', 1)" ${value >= max ? 'disabled' : ''} aria-label="Increase ${unit}">+</button>
+          </div>
+        </div>
+      `;
+    };
     
     el.prioritiseBox.innerHTML = `
       <div style="text-align: center; padding: 20px;">
@@ -946,73 +944,130 @@ function renderPriorityQuestion() {
           <div class="title">${escapeHtml(currentPriorityTask.title)}</div>
         </div>
         ${totalDays > 0 && durationText ? `
-          <div style="background: rgba(37, 99, 235, 0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 12px; margin: 16px auto; max-width: 400px;">
+          <div style="background: rgba(37, 99, 235, 0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 12px; margin: 16px auto; max-width: 500px;">
             <div style="font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 4px;">Total Timeframe:</div>
-            <div style="font-size: 16px; font-weight: 700; color: var(--text);">${durationText}</div>
+            <div style="font-size: 18px; font-weight: 700; color: var(--text);">${durationText}</div>
             <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">${totalDays} total days</div>
           </div>
         ` : ''}
-        <p style="color: var(--muted); font-size: 14px; margin: 16px 0 24px;">Select your timeframe:</p>
+        <p style="color: var(--muted); font-size: 14px; margin: 16px 0 24px;">Tap to adjust your timeframe:</p>
         
-        <div style="display: flex; gap: 8px; justify-content: center; margin-bottom: 24px; flex-wrap: wrap;">
-          <button class="btn pill ${currentUnit === 'days' ? 'primary' : 'ghost'}" onclick="changeTimeframeUnit('days')">Days</button>
-          <button class="btn pill ${currentUnit === 'weeks' ? 'primary' : 'ghost'}" onclick="changeTimeframeUnit('weeks')">Weeks</button>
-          <button class="btn pill ${currentUnit === 'months' ? 'primary' : 'ghost'}" onclick="changeTimeframeUnit('months')">Months</button>
-          <button class="btn pill ${currentUnit === 'years' ? 'primary' : 'ghost'}" onclick="changeTimeframeUnit('years')">Years</button>
-        </div>
-        
-        <div style="max-width: 400px; margin: 0 auto;">
-          <div style="font-size: 24px; font-weight: 700; color: var(--accent); margin-bottom: 16px;">
-            <span id="timeframeValue">${currentValue}</span> <span id="timeframeUnitLabel">${unitLabel}</span>
-          </div>
-          
-          <input type="range" 
-            id="timeframeSlider" 
-            min="${range.min}" 
-            max="${range.max}" 
-            value="${currentUnitValue}" 
-            style="width: 100%; height: 8px; border-radius: 4px; outline: none; background: linear-gradient(to right, var(--accent) 0%, var(--accent) ${((currentUnitValue - range.min) / (range.max - range.min)) * 100}%, var(--border) ${((currentUnitValue - range.min) / (range.max - range.min)) * 100}%, var(--border) 100%); cursor: pointer; -webkit-appearance: none; appearance: none;"
-            oninput="updateTimeframeSlider(this.value)"
-          />
-          
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
-            <span style="font-size: 12px; color: var(--muted);">${range.min} = Minimum</span>
-            <span style="font-size: 12px; color: var(--muted);">${range.max} = Maximum</span>
-          </div>
+        <div class="time-chips-container">
+          ${createStepperChip('years', components.years, 10)}
+          ${createStepperChip('months', components.months, 11)}
+          ${createStepperChip('weeks', components.weeks, 52)}
+          ${createStepperChip('days', components.days, 365)}
         </div>
         
         <div style="margin-top: 32px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
           ${totalDays > 0 ? `<button class="btn pill ghost" onclick="resetDuration()" style="min-width: 100px;">Reset</button>` : ''}
-          <button class="btn pill primary" onclick="confirmTimeframe()" style="min-width: 200px;">Continue</button>
+          <button class="btn pill primary" onclick="confirmTimeframeChips()" style="min-width: 200px;">Continue</button>
         </div>
       </div>
     `;
     
-    // Add custom slider styling
-    const style = document.createElement('style');
-    style.textContent = `
-      #timeframeSlider::-webkit-slider-thumb {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background: var(--accent);
-        cursor: pointer;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      }
-      #timeframeSlider::-moz-range-thumb {
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background: var(--accent);
-        cursor: pointer;
-        border: none;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-      }
-    `;
-    if (!document.getElementById('timeframe-slider-styles')) {
-      style.id = 'timeframe-slider-styles';
+    // Add styles for time chips
+    if (!document.getElementById('time-chips-styles')) {
+      const style = document.createElement('style');
+      style.id = 'time-chips-styles';
+      style.textContent = `
+        .time-chips-container {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          justify-content: center;
+          max-width: 500px;
+          margin: 0 auto;
+        }
+        
+        .time-chip {
+          background: var(--card);
+          border: 2px solid var(--border);
+          border-radius: 12px;
+          padding: 12px 16px;
+          transition: all 0.2s ease;
+          min-width: 110px;
+        }
+        
+        .time-chip.collapsed {
+          opacity: 0.6;
+          border-style: dashed;
+        }
+        
+        .time-chip.expanded {
+          border-color: var(--accent);
+          box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+        }
+        
+        .time-chip-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--muted);
+          margin-bottom: 8px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        
+        .time-chip-stepper {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+        
+        .stepper-btn {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          border: 1px solid var(--border);
+          background: var(--pill-bg);
+          color: var(--text);
+          font-size: 18px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
+          font-family: inherit;
+        }
+        
+        .stepper-btn:hover:not(:disabled) {
+          background: var(--accent);
+          color: white;
+          border-color: var(--accent);
+          transform: translateY(-1px);
+        }
+        
+        .stepper-btn:active:not(:disabled) {
+          transform: translateY(0);
+        }
+        
+        .stepper-btn:disabled {
+          opacity: 0.3;
+          cursor: not-allowed;
+        }
+        
+        .time-value {
+          font-size: 20px;
+          font-weight: 700;
+          color: var(--text);
+          min-width: 30px;
+          text-align: center;
+        }
+        
+        @media (max-width: 560px) {
+          .time-chips-container {
+            flex-direction: column;
+            max-width: 200px;
+          }
+          
+          .time-chip {
+            width: 100%;
+          }
+        }
+      `;
       document.head.appendChild(style);
     }
     
@@ -1091,33 +1146,7 @@ function goBackToPriorityRating() {
   renderPriorityQuestion();
 }
 
-// Timeframe selector state - simplified to track UI only
-let currentUnit = 'weeks';
-let currentUnitValue = 1;
 
-function changeTimeframeUnit(unit) {
-  currentUnit = unit;
-  
-  // Define ranges for each unit
-  const unitRanges = {
-    days: { min: 1, max: 6 },
-    weeks: { min: 1, max: 3 },
-    months: { min: 1, max: 11 },
-    years: { min: 1, max: 10 }
-  };
-  
-  const range = unitRanges[unit];
-  
-  // Get existing value from task's duration if it exists
-  if (currentPriorityTask && currentPriorityTask.duration) {
-    const components = parseDuration(currentPriorityTask.duration);
-    currentUnitValue = components[unit] || range.min;
-  } else {
-    currentUnitValue = range.min;
-  }
-  
-  renderPriorityQuestion();
-}
 
 function resetDuration() {
   if (currentPriorityTask) {
@@ -1128,48 +1157,44 @@ function resetDuration() {
   showSuccess('Timeframe reset');
 }
 
-function updateTimeframeSlider(value) {
-  currentUnitValue = parseInt(value);
-  
-  const valueDisplay = document.getElementById('timeframeValue');
-  const unitLabel = document.getElementById('timeframeUnitLabel');
-  const slider = document.getElementById('timeframeSlider');
-  
-  // Helper function to get singular/plural unit name
-  const getUnitLabel = (val, unit) => {
-    if (val === 1) {
-      return unit.slice(0, -1); // Remove 's' for singular
-    }
-    return unit;
-  };
-  
-  if (valueDisplay) valueDisplay.textContent = value;
-  if (unitLabel) unitLabel.textContent = getUnitLabel(currentUnitValue, currentUnit);
-  
-  // Update slider background gradient
-  if (slider) {
-    const min = parseInt(slider.min);
-    const max = parseInt(slider.max);
-    const percent = ((value - min) / (max - min)) * 100;
-    slider.style.background = `linear-gradient(to right, var(--accent) 0%, var(--accent) ${percent}%, var(--border) ${percent}%, var(--border) 100%)`;
-  }
-}
-
-function confirmTimeframe() {
+// Time chips UI functions
+function adjustTimeUnit(unit, delta) {
   if (!currentPriorityTask) return;
   
-  // Get existing duration components
-  const existing = currentPriorityTask.duration ? parseDuration(currentPriorityTask.duration) : { years: 0, months: 0, weeks: 0, days: 0 };
+  // Get current components
+  const components = currentPriorityTask.duration ? parseDuration(currentPriorityTask.duration) : { years: 0, months: 0, weeks: 0, days: 0 };
   
-  // Update the current unit
-  existing[currentUnit] = currentUnitValue;
+  // Define max values
+  const maxValues = { years: 10, months: 11, weeks: 52, days: 365 };
   
-  // Create ISO 8601 duration string
-  const duration = createDuration(existing.years, existing.months, existing.weeks, existing.days);
+  // Update value
+  const currentValue = components[unit] || 0;
+  const newValue = Math.max(0, Math.min(maxValues[unit], currentValue + delta));
+  components[unit] = newValue;
+  
+  // Update duration
+  currentPriorityTask.duration = createDuration(components.years, components.months, components.weeks, components.days);
+  
+  // Re-render
+  renderPriorityQuestion();
+}
+
+function confirmTimeframeChips() {
+  if (!currentPriorityTask) return;
+  
+  const duration = currentPriorityTask.duration;
+  
+  if (!duration) {
+    showError('Please set a timeframe before continuing');
+    return;
+  }
+  
   const totalDays = parseDurationToDays(duration);
   
-  // Store duration in ISO 8601 format
-  currentPriorityTask.duration = duration;
+  if (totalDays === 0) {
+    showError('Please set a timeframe greater than 0');
+    return;
+  }
   
   // Calculate target date
   const now = Date.now();
@@ -1184,6 +1209,8 @@ function confirmTimeframe() {
   priorityQuestionType = 'importance';
   renderPriorityQuestion();
 }
+
+
 
 /**
  * Parses ISO 8601 duration into component object
