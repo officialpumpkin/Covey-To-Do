@@ -519,7 +519,7 @@ function initializeEventHandlers() {
   // Add form
   if (el.addForm) {
     el.addForm.onsubmit=(e)=>{ e.preventDefault(); const v=el.taskInput.value.trim(); if(!v){ showError('Please enter a task description'); el.taskInput.focus(); return; } if(v.length>200){ showError('Task description must be less than 200 characters'); el.taskInput.focus(); return; } if(tasks.some(t=> (t.title||'').toLowerCase()===v.toLowerCase())){ showError('A task with this description already exists'); el.taskInput.focus(); return; }
-      addLoadingState(el.addForm); try{ tasks.unshift({id:uid(), title:v, completed:false, quadrant:null, rank:null, urgency:5, importance:5, duration:null, targetDate:null, createdAt:nowMs(), updatedAt:nowMs()}); el.taskInput.value=''; saveLocal(); queueUpload(); markForUpdate(['step1']); renderState.suggestions=true; render(); removeLoadingState(el.addForm); addSuccessFlash(el.inboxList); showSuccess('Task added successfully'); setTimeout(()=> el.taskInput.focus(),100); }catch(err){ removeLoadingState(el.addForm); console.error(err); showError('Failed to add task.'); }
+      addLoadingState(el.addForm); try{ tasks.unshift({id:uid(), title:v, completed:false, quadrant:null, rank:null, urgency:50, importance:50, duration:null, targetDate:null, createdAt:nowMs(), updatedAt:nowMs()}); el.taskInput.value=''; saveLocal(); queueUpload(); markForUpdate(['step1']); renderState.suggestions=true; render(); removeLoadingState(el.addForm); addSuccessFlash(el.inboxList); showSuccess('Task added successfully'); setTimeout(()=> el.taskInput.focus(),100); }catch(err){ removeLoadingState(el.addForm); console.error(err); showError('Failed to add task.'); }
     };
   }
   
@@ -886,7 +886,7 @@ function renderPrioritise() {
           <div style="flex: 1;">
             <div class="title ${task.completed ? 'strike' : ''}" style="margin-bottom: 4px; font-weight: 600;">${escapeHtml(task.title)}</div>
             <div style="font-size: 12px; color: var(--muted);">
-              Priority Score: ${priority} (U:${task.urgency || 5} × I:${task.importance || 5})
+              Priority Score: ${priority} (U:${task.urgency || 50} × I:${Math.round((task.importance || 50) / 10)})
             </div>
           </div>
           <div style="font-weight: 600; font-size: 16px; color: var(--accent);">#${index + 1}</div>
@@ -1118,7 +1118,13 @@ function renderPriorityQuestion() {
 function setPriorityRating(rating) {
   if (!currentPriorityTask) return;
   
-  currentPriorityTask[priorityQuestionType] = rating;
+  // For importance, multiply by 10 to get 10-100 scale (user selects 1-10)
+  // Urgency is already on 1-100 scale from timeframe calculation
+  if (priorityQuestionType === 'importance') {
+    currentPriorityTask[priorityQuestionType] = rating * 10;
+  } else {
+    currentPriorityTask[priorityQuestionType] = rating;
+  }
   currentPriorityTask.updatedAt = nowMs();
   
   if (priorityQuestionType === 'urgency') {
@@ -1134,7 +1140,7 @@ function setPriorityRating(rating) {
     const categorized = tasks.filter(t => t.quadrant);
     const nextUnprioritized = categorized.find(t => 
       t.id !== currentPriorityTask.id && 
-      (!t.urgency || !t.importance || (t.urgency === 5 && t.importance === 5))
+      (!t.urgency || !t.importance || (t.urgency === 5 && t.importance === 50))
     );
     
     if (nextUnprioritized) {
@@ -1295,25 +1301,36 @@ function formatDuration(duration) {
 }
 
 /**
- * Converts timeframe (in days) to urgency score (1-10)
- * Uses logarithmic scaling to provide intuitive urgency ratings:
- * - 1 day or less = 10 (most urgent)
- * - 1 week = 8
- * - 1 month = 5
- * - 6 months = 3
- * - 1 year or more = 1 (least urgent)
+ * Converts timeframe (in days) to urgency score (1-100)
+ * Uses a more granular scale to provide finer priority distinctions:
+ * - 1 day or less = 100 (most urgent)
+ * - 1 week = 85
+ * - 2 weeks = 75
+ * - 1 month = 60
+ * - 2 months = 45
+ * - 3 months = 35
+ * - 6 months = 20
+ * - 1 year = 10
+ * - More than 1 year = 1 (least urgent)
  */
 function calculateUrgencyFromTimeframe(totalDays) {
-  if (totalDays <= 0) return 10; // Immediate/overdue
-  if (totalDays <= 1) return 10; // Today
-  if (totalDays <= 2) return 9;  // Tomorrow
-  if (totalDays <= 7) return 8;  // This week
-  if (totalDays <= 14) return 7; // 2 weeks
-  if (totalDays <= 30) return 5; // 1 month
-  if (totalDays <= 60) return 4; // 2 months
-  if (totalDays <= 180) return 3; // 6 months
-  if (totalDays <= 365) return 2; // 1 year
-  return 1; // More than 1 year
+  if (totalDays <= 0) return 100; // Immediate/overdue
+  if (totalDays <= 1) return 100; // Today
+  if (totalDays <= 2) return 95;  // Tomorrow
+  if (totalDays <= 3) return 90;  // 3 days
+  if (totalDays <= 7) return 85;  // This week
+  if (totalDays <= 10) return 80; // 10 days
+  if (totalDays <= 14) return 75; // 2 weeks
+  if (totalDays <= 21) return 70; // 3 weeks
+  if (totalDays <= 30) return 60; // 1 month
+  if (totalDays <= 45) return 50; // 1.5 months
+  if (totalDays <= 60) return 45; // 2 months
+  if (totalDays <= 90) return 35; // 3 months
+  if (totalDays <= 120) return 28; // 4 months
+  if (totalDays <= 180) return 20; // 6 months
+  if (totalDays <= 270) return 15; // 9 months
+  if (totalDays <= 365) return 10; // 1 year
+  return Math.max(1, Math.floor(10 - (totalDays - 365) / 365)); // Diminishing after 1 year, minimum 1
 }
 
 function editTaskPriority(taskId) {
