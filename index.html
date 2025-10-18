@@ -923,7 +923,7 @@ function renderPriorityQuestion() {
     
     // Helper to create a stepper chip
     const createStepperChip = (unit, value, max) => {
-      const label = unit.charAt(0).toUpperCase() + unit.slice(0, -1); // "Years" -> "Year", etc.
+      const label = unit.charAt(0).toUpperCase() + unit.slice(1, -1); // "years" -> "Year", "months" -> "Month"
       const isZero = value === 0;
       return `
         <div class="time-chip ${isZero ? 'collapsed' : 'expanded'}" data-unit="${unit}">
@@ -953,10 +953,10 @@ function renderPriorityQuestion() {
         <p style="color: var(--muted); font-size: 14px; margin: 16px 0 24px;">Tap to adjust your timeframe:</p>
         
         <div class="time-chips-container">
-          ${createStepperChip('years', components.years, 10)}
-          ${createStepperChip('months', components.months, 11)}
-          ${createStepperChip('weeks', components.weeks, 52)}
           ${createStepperChip('days', components.days, 365)}
+          ${createStepperChip('weeks', components.weeks, 52)}
+          ${createStepperChip('months', components.months, 11)}
+          ${createStepperChip('years', components.years, 10)}
         </div>
         
         <div style="margin-top: 32px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
@@ -972,11 +972,11 @@ function renderPriorityQuestion() {
       style.id = 'time-chips-styles';
       style.textContent = `
         .time-chips-container {
-          display: flex;
-          flex-wrap: wrap;
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
           gap: 12px;
           justify-content: center;
-          max-width: 500px;
+          max-width: 400px;
           margin: 0 auto;
         }
         
