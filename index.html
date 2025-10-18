@@ -1312,14 +1312,6 @@ function editTaskPriority(taskId) {
   currentPriorityTask = task;
   priorityQuestionType = 'urgency';
   
-  // Initialize UI state from existing duration
-  if (task.duration) {
-    const components = parseDuration(task.duration);
-    currentUnitValue = components[currentUnit] || 1;
-  } else {
-    currentUnitValue = 1;
-  }
-  
   renderPriorityQuestion();
 }
 
