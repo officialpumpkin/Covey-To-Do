@@ -921,6 +921,15 @@ function renderPriorityQuestion() {
     const totalDays = existingDuration ? parseDurationToDays(existingDuration) : 0;
     const durationText = existingDuration ? formatDuration(existingDuration) : '';
     
+    // Calculate target date for display
+    const now = new Date();
+    const targetDate = totalDays > 0 ? new Date(now.getTime() + (totalDays * 24 * 60 * 60 * 1000)) : null;
+    const targetDateText = targetDate ? targetDate.toLocaleDateString('en-GB', { 
+      weekday: 'short', 
+      day: 'numeric', 
+      month: 'short' 
+    }) : '';
+    
     // Helper to create a stepper chip
     const createStepperChip = (unit, value, max) => {
       const label = unit.charAt(0).toUpperCase() + unit.slice(1, -1); // "years" -> "Year", "months" -> "Month"
@@ -947,7 +956,8 @@ function renderPriorityQuestion() {
           <div style="background: rgba(37, 99, 235, 0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 12px; margin: 16px auto; max-width: 500px;">
             <div style="font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 4px;">Total Timeframe:</div>
             <div style="font-size: 18px; font-weight: 700; color: var(--text);">${durationText}</div>
-            <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">${totalDays} total days</div>
+            <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">${totalDays} total day${totalDays !== 1 ? 's' : ''}</div>
+            ${targetDateText ? `<div style="font-size: 13px; font-weight: 600; color: var(--text); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);">If you start today, finish by ${targetDateText}</div>` : ''}
           </div>
         ` : ''}
         <p style="color: var(--muted); font-size: 14px; margin: 16px 0 24px;">Tap to adjust your timeframe:</p>
