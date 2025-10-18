@@ -953,8 +953,8 @@ function renderPriorityQuestion() {
         <p style="color: var(--muted); font-size: 14px; margin: 16px 0 24px;">Tap to adjust your timeframe:</p>
         
         <div class="time-chips-container">
-          ${createStepperChip('days', components.days, 365)}
-          ${createStepperChip('weeks', components.weeks, 52)}
+          ${createStepperChip('days', components.days, 6)}
+          ${createStepperChip('weeks', components.weeks, 3)}
           ${createStepperChip('months', components.months, 11)}
           ${createStepperChip('years', components.years, 10)}
         </div>
@@ -1165,7 +1165,7 @@ function adjustTimeUnit(unit, delta) {
   const components = currentPriorityTask.duration ? parseDuration(currentPriorityTask.duration) : { years: 0, months: 0, weeks: 0, days: 0 };
   
   // Define max values
-  const maxValues = { years: 10, months: 11, weeks: 52, days: 365 };
+  const maxValues = { years: 10, months: 11, weeks: 3, days: 6 };
   
   // Update value
   const currentValue = components[unit] || 0;
