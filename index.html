@@ -804,16 +804,12 @@ function renderPrioritise() {
   };
 
   // Check if we need to show priority rating interface
-  const unprioritized = categorized.find(t => !t.urgency || !t.importance || t.urgency === 5 && t.importance === 5);
+  // A task is unprioritized if it has no duration set (meaning no timeframe/urgency rating completed)
+  const unprioritized = categorized.find(t => !t.duration);
   
   if (unprioritized && !currentPriorityTask) {
     currentPriorityTask = unprioritized;
     priorityQuestionType = 'urgency';
-    
-    // Initialize temp values from task if they exist
-    tempTimeframeValue = unprioritized.timeframeValue || 1;
-    tempTimeframeUnit = unprioritized.timeframeUnit || 'weeks';
-    accumulatedDays = 0; // Reset accumulator for new task
   }
 
   if (currentPriorityTask) {
