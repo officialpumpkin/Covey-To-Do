@@ -312,6 +312,10 @@ input[type="checkbox"]:checked::after{content:"";width:10px;height:6px;border:2p
           <input id="autoFocusInput" type="checkbox" checked> 
           Auto-focus task input
         </label>
+        <label class="row" style="gap:8px; display:flex; align-items:center">
+          <input id="showPriorityDetails" type="checkbox"> 
+          Show priority calculation details
+        </label>
       </div>
     </div>
 
@@ -443,7 +447,7 @@ document.addEventListener('DOMContentLoaded', function() {
     signInForm:byId('signInForm'), emailInput:byId('emailInput'), passwordInput:byId('passwordInput'),
     createAccountBtn:byId('createAccountBtn'), googleSignInBtn:byId('googleSignInBtn'), authStatus:byId('authStatus'), authStatusModal:byId('authStatusModal'),
     saveSettings:byId('saveSettings'), accentSwatches:byId('accentSwatches'), accentCustom:byId('accentCustom'), accentApply:byId('accentApply'),
-    fontSelect:byId('fontSelect'), confirmDeletes:byId('confirmDeletes'), enableAnimations:byId('enableAnimations'), autoFocusInput:byId('autoFocusInput'),
+    fontSelect:byId('fontSelect'), confirmDeletes:byId('confirmDeletes'), enableAnimations:byId('enableAnimations'), autoFocusInput:byId('autoFocusInput'), showPriorityDetails:byId('showPriorityDetails'),
     exportData:byId('exportData'), importData:byId('importData'), importFile:byId('importFile') };
   
   // Set up event listeners
@@ -876,13 +880,22 @@ function renderPrioritise() {
         transition: transform 0.2s ease, box-shadow 0.2s ease;
       `;
       
+      const showDetails = (function() {
+        try {
+          const s = JSON.parse(localStorage.getItem('covey_settings') || '{}');
+          return s.showPriorityDetails || false;
+        } catch {
+          return false;
+        }
+      })();
+      
       taskDiv.innerHTML = `
         <div style="display: flex; align-items: center; gap: 12px;">
           <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTaskCompletion('${task.id}')" style="accent-color: var(--accent); margin: 0;">
           <div style="flex: 1;">
             <div class="title ${task.completed ? 'strike' : ''}" style="margin-bottom: 4px; font-weight: 600;">${escapeHtml(task.title)}</div>
             <div style="font-size: 12px; color: var(--muted);">
-              Priority Score: ${priority} (U:${task.urgency || 50} × I:${Math.round((task.importance || 50) / 10)})
+              Priority Score: ${priority}${showDetails ? ` (U:${task.urgency || 50} × I:${Math.round((task.importance || 50) / 10)})` : ''}
             </div>
           </div>
           <div style="font-weight: 600; font-size: 16px; color: var(--accent);">#${index + 1}</div>
@@ -1463,7 +1476,7 @@ const modal=document.getElementById('settingsModal');
 function applyFont(f){ document.documentElement.style.setProperty('--font-family', f); saveUserSettings(); }
 function exportTasks(){ const data={ tasks, settings: JSON.parse(localStorage.getItem('covey_settings')||'{}'), exported:new Date().toISOString() }; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`covey-todo-${new Date().toISOString().split('T')[0]}.json`; a.click(); URL.revokeObjectURL(url); showSuccess('Tasks exported'); }
 function importTasks(file){ if(!file) return; const r=new FileReader(); r.onload=(e)=>{ try{ const data=JSON.parse(e.target.result); if(data.tasks && Array.isArray(data.tasks)){ if(confirm(`Import ${data.tasks.length} tasks? This will replace your current tasks.`)){ tasks=data.tasks; saveLocal(); queueUpload(); markForUpdate(['step1','step2','step3']); renderState.suggestions=true; render(); showSuccess(`Imported ${data.tasks.length} tasks`); } } else { showError('Invalid file format'); } } catch(err){ console.error('Import error:',err); showError('Failed to import tasks'); } }; r.readAsText(file); el.importFile.value=''; }
-function saveUserSettings(){ try{ const s={ fontFamily: el.fontSelect?.value || 'system-ui, -apple-system, \'Segoe UI\', Roboto, Inter, Arial, sans-serif', confirmDeletes: el.confirmDeletes?.checked !== false, enableAnimations: el.enableAnimations?.checked !== false, autoFocusInput: el.autoFocusInput?.checked !== false }; localStorage.setItem('covey_settings', JSON.stringify(s)); }catch(e){ console.warn('Could not save settings:', e); }}
+function saveUserSettings(){ try{ const s={ fontFamily: el.fontSelect?.value || 'system-ui, -apple-system, \'Segoe UI\', Roboto, Inter, Arial, sans-serif', confirmDeletes: el.confirmDeletes?.checked !== false, enableAnimations: el.enableAnimations?.checked !== false, autoFocusInput: el.autoFocusInput?.checked !== false, showPriorityDetails: el.showPriorityDetails?.checked || false }; localStorage.setItem('covey_settings', JSON.stringify(s)); }catch(e){ console.warn('Could not save settings:', e); }}
 function loadUserSettings(){ try{ const s=JSON.parse(localStorage.getItem('covey_settings')||'{}'); if(s.fontFamily){ document.documentElement.style.setProperty('--font-family', s.fontFamily); } return s; }catch(e){ return {}; }}
 
 /* ========= Authentication modal ========= */
@@ -1538,7 +1551,7 @@ function byId(id){ return document.getElementById(id); }
 function escapeHtml(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
 
 function __recordDelete(){}
-function loadSettingsIntoUI(){ try{ const s=JSON.parse(localStorage.getItem('covey_settings')||'{}'); if(el.fontSelect && s.fontFamily) el.fontSelect.value=s.fontFamily; if(el.confirmDeletes) el.confirmDeletes.checked = s.confirmDeletes !== false; if(el.enableAnimations) el.enableAnimations.checked = s.enableAnimations !== false; if(el.autoFocusInput) el.autoFocusInput.checked = s.autoFocusInput !== false; }catch{} }
+function loadSettingsIntoUI(){ try{ const s=JSON.parse(localStorage.getItem('covey_settings')||'{}'); if(el.fontSelect && s.fontFamily) el.fontSelect.value=s.fontFamily; if(el.confirmDeletes) el.confirmDeletes.checked = s.confirmDeletes !== false; if(el.enableAnimations) el.enableAnimations.checked = s.enableAnimations !== false; if(el.autoFocusInput) el.autoFocusInput.checked = s.autoFocusInput !== false; if(el.showPriorityDetails) el.showPriorityDetails.checked = s.showPriorityDetails || false; }catch{} }
 function isFirebaseReady(){ return !!(window.firebase && firebase.apps && firebase.apps.length && auth && db); }
 
 // Cloud sync (debounced push)
