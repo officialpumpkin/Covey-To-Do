@@ -2,15 +2,17 @@ name: Deploy to Firebase Hosting
 
 on:
   push:
-    branches: [ "main" ]     # deploy when you push to main
-  pull_request:               # optional: makes preview channels for PRs
+    branches: [main]  # Only deploy after merges to main
+
+permissions:
+  contents: read
+  checks: write
+  deployments: write
+  id-token: write
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
     steps:
       - uses: actions/checkout@v4
 

@@ -312,6 +312,10 @@ input[type="checkbox"]:checked::after{content:"";width:10px;height:6px;border:2p
           <input id="autoFocusInput" type="checkbox" checked> 
           Auto-focus task input
         </label>
+        <label class="row" style="gap:8px; display:flex; align-items:center">
+          <input id="showPriorityDetails" type="checkbox" onchange="saveUserSettings()"> 
+          Show priority calculation details
+        </label>
       </div>
     </div>
 
@@ -415,7 +419,7 @@ let renderState = { step1:true, step2:true, step3:true, step4:true, suggestions:
 
 function debounce(func, wait){ let timeout; return function(...args){ clearTimeout(timeout); timeout=setTimeout(()=>func.apply(this,args), wait); }; }
 
-function loadLocal(){ try{ const data = localStorage.getItem(STORAGE_KEY); if(!data) return []; const parsed = JSON.parse(data); return Array.isArray(parsed)? parsed : []; }catch(e){ console.error('Failed to load from localStorage:', e); return []; } }
+function loadLocal(){ try{ const data = localStorage.getItem(STORAGE_KEY); if(!data) return []; const parsed = JSON.parse(data); if(!Array.isArray(parsed)) return []; return parsed.map(task => ({ ...task, duration: task.duration || null, targetDate: task.targetDate !== undefined ? task.targetDate : null })); }catch(e){ console.error('Failed to load from localStorage:', e); return []; } }
 function saveLocal(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }catch(e){ console.error('Failed to save to localStorage:', e); }}
 function uid(){ return Math.random().toString(36).slice(2) + Date.now().toString(36); }
 function nowMs(){ return Date.now(); }
@@ -443,7 +447,7 @@ document.addEventListener('DOMContentLoaded', function() {
     signInForm:byId('signInForm'), emailInput:byId('emailInput'), passwordInput:byId('passwordInput'),
     createAccountBtn:byId('createAccountBtn'), googleSignInBtn:byId('googleSignInBtn'), authStatus:byId('authStatus'), authStatusModal:byId('authStatusModal'),
     saveSettings:byId('saveSettings'), accentSwatches:byId('accentSwatches'), accentCustom:byId('accentCustom'), accentApply:byId('accentApply'),
-    fontSelect:byId('fontSelect'), confirmDeletes:byId('confirmDeletes'), enableAnimations:byId('enableAnimations'), autoFocusInput:byId('autoFocusInput'),
+    fontSelect:byId('fontSelect'), confirmDeletes:byId('confirmDeletes'), enableAnimations:byId('enableAnimations'), autoFocusInput:byId('autoFocusInput'), showPriorityDetails:byId('showPriorityDetails'),
     exportData:byId('exportData'), importData:byId('importData'), importFile:byId('importFile') };
   
   // Set up event listeners
@@ -519,7 +523,7 @@ function initializeEventHandlers() {
   // Add form
   if (el.addForm) {
     el.addForm.onsubmit=(e)=>{ e.preventDefault(); const v=el.taskInput.value.trim(); if(!v){ showError('Please enter a task description'); el.taskInput.focus(); return; } if(v.length>200){ showError('Task description must be less than 200 characters'); el.taskInput.focus(); return; } if(tasks.some(t=> (t.title||'').toLowerCase()===v.toLowerCase())){ showError('A task with this description already exists'); el.taskInput.focus(); return; }
-      addLoadingState(el.addForm); try{ tasks.unshift({id:uid(), title:v, completed:false, quadrant:null, rank:null, urgency:5, importance:5, createdAt:nowMs(), updatedAt:nowMs()}); el.taskInput.value=''; saveLocal(); queueUpload(); markForUpdate(['step1']); renderState.suggestions=true; render(); removeLoadingState(el.addForm); addSuccessFlash(el.inboxList); showSuccess('Task added successfully'); setTimeout(()=> el.taskInput.focus(),100); }catch(err){ removeLoadingState(el.addForm); console.error(err); showError('Failed to add task.'); }
+      addLoadingState(el.addForm); try{ tasks.unshift({id:uid(), title:v, completed:false, quadrant:null, rank:null, urgency:50, importance:50, duration:null, targetDate:null, createdAt:nowMs(), updatedAt:nowMs()}); el.taskInput.value=''; saveLocal(); queueUpload(); markForUpdate(['step1']); renderState.suggestions=true; render(); removeLoadingState(el.addForm); addSuccessFlash(el.inboxList); showSuccess('Task added successfully'); setTimeout(()=> el.taskInput.focus(),100); }catch(err){ removeLoadingState(el.addForm); console.error(err); showError('Failed to add task.'); }
     };
   }
   
@@ -804,7 +808,8 @@ function renderPrioritise() {
   };
 
   // Check if we need to show priority rating interface
-  const unprioritized = categorized.find(t => !t.urgency || !t.importance || t.urgency === 5 && t.importance === 5);
+  // A task is unprioritized if it has no duration set (meaning no timeframe/urgency rating completed)
+  const unprioritized = categorized.find(t => !t.duration);
   
   if (unprioritized && !currentPriorityTask) {
     currentPriorityTask = unprioritized;
@@ -875,14 +880,23 @@ function renderPrioritise() {
         transition: transform 0.2s ease, box-shadow 0.2s ease;
       `;
       
+      const showDetails = (function() {
+        try {
+          const s = JSON.parse(localStorage.getItem('covey_settings') || '{}');
+          return s.showPriorityDetails || false;
+        } catch {
+          return false;
+        }
+      })();
+      
       taskDiv.innerHTML = `
         <div style="display: flex; align-items: center; gap: 12px;">
           <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTaskCompletion('${task.id}')" style="accent-color: var(--accent); margin: 0;">
           <div style="flex: 1;">
             <div class="title ${task.completed ? 'strike' : ''}" style="margin-bottom: 4px; font-weight: 600;">${escapeHtml(task.title)}</div>
-            <div style="font-size: 12px; color: var(--muted);">
-              Priority Score: ${priority} (U:${task.urgency || 5} × I:${task.importance || 5})
-            </div>
+            ${showDetails ? `<div style="font-size: 12px; color: var(--muted);">
+              Priority Score: ${priority} (U:${task.urgency || 50} × I:${task.importance || 50})
+            </div>` : ''}
           </div>
           <div style="font-weight: 600; font-size: 16px; color: var(--accent);">#${index + 1}</div>
           <button class="btn pill ghost" onclick="editTaskPriority('${task.id}')" style="padding: 4px 8px; font-size: 11px;">Edit</button>
@@ -909,47 +923,217 @@ function renderPrioritise() {
 function renderPriorityQuestion() {
   if (!currentPriorityTask) return;
   
-  const questionText = priorityQuestionType === 'urgency' 
-    ? 'How urgent is this task?' 
-    : 'How important is this task?';
+  if (priorityQuestionType === 'urgency') {
+    // Show timeframe selector with chips + steppers UI
+    const existingDuration = currentPriorityTask.duration || null;
+    const components = existingDuration ? parseDuration(existingDuration) : { years: 0, months: 0, weeks: 0, days: 0 };
+    const totalDays = existingDuration ? parseDurationToDays(existingDuration) : 0;
+    const durationText = existingDuration ? formatDuration(existingDuration) : '';
     
-  const subText = priorityQuestionType === 'urgency'
-    ? 'On a scale of 1-10 how time sensitive is this?'
-    : 'How critical is this to your goals? Would missing this significantly impact you?';
-  
-  el.prioritiseBox.innerHTML = `
-    <div style="text-align: center; padding: 20px;">
-      <div class="sec-title" style="margin-bottom: 20px;">${questionText}</div>
-      <div class="task" style="margin: 16px auto; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
-        <div class="title">${escapeHtml(currentPriorityTask.title)}</div>
+    // Calculate target date for display
+    const now = new Date();
+    const targetDate = totalDays > 0 ? new Date(now.getTime() + (totalDays * 24 * 60 * 60 * 1000)) : null;
+    const targetDateText = targetDate ? targetDate.toLocaleDateString('en-GB', { 
+      weekday: 'short', 
+      day: 'numeric', 
+      month: 'short',
+      year: totalDays > 365 ? 'numeric' : undefined
+    }) : '';
+    
+    // Helper to create a stepper chip
+    const createStepperChip = (unit, value, max) => {
+      const label = unit.charAt(0).toUpperCase() + unit.slice(1, -1); // "years" -> "Year", "months" -> "Month"
+      const isZero = value === 0;
+      return `
+        <div class="time-chip ${isZero ? 'collapsed' : 'expanded'}" data-unit="${unit}">
+          <div class="time-chip-label">${label}${value !== 1 ? 's' : ''}</div>
+          <div class="time-chip-stepper">
+            <button class="stepper-btn" onclick="adjustTimeUnit('${unit}', -1)" ${value === 0 ? 'disabled' : ''} aria-label="Decrease ${unit}">−</button>
+            <span class="time-value">${value}</span>
+            <button class="stepper-btn" onclick="adjustTimeUnit('${unit}', 1)" ${value >= max ? 'disabled' : ''} aria-label="Increase ${unit}">+</button>
+          </div>
+        </div>
+      `;
+    };
+    
+    el.prioritiseBox.innerHTML = `
+      <div style="text-align: center; padding: 20px;">
+        <div class="sec-title" style="margin-bottom: 20px;">How long do you need to complete this task?</div>
+        <div class="task" style="margin: 16px auto; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div class="title">${escapeHtml(currentPriorityTask.title)}</div>
+        </div>
+        ${totalDays > 0 && durationText ? `
+          <div style="background: rgba(37, 99, 235, 0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 12px; margin: 16px auto; max-width: 500px;">
+            <div style="font-size: 14px; font-weight: 600; color: var(--accent); margin-bottom: 4px;">Total Timeframe:</div>
+            <div style="font-size: 18px; font-weight: 700; color: var(--text);">${durationText}</div>
+            <div style="font-size: 12px; color: var(--muted); margin-top: 4px;">${totalDays} total day${totalDays !== 1 ? 's' : ''}</div>
+            ${targetDateText ? `<div style="font-size: 13px; font-weight: 600; color: var(--text); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);">If you start today, finish by ${targetDateText}</div>` : ''}
+          </div>
+        ` : ''}
+        <p style="color: var(--muted); font-size: 14px; margin: 16px 0 24px;">Tap to adjust your timeframe:</p>
+        
+        <div class="time-chips-container">
+          ${createStepperChip('days', components.days, 6)}
+          ${createStepperChip('weeks', components.weeks, 3)}
+          ${createStepperChip('months', components.months, 11)}
+          ${createStepperChip('years', components.years, 10)}
+        </div>
+        
+        <div style="margin-top: 32px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+          ${totalDays > 0 ? `<button class="btn pill ghost" onclick="resetDuration()" style="min-width: 100px;">Reset</button>` : ''}
+          <button class="btn pill primary" onclick="confirmTimeframeChips()" style="min-width: 200px;">Continue</button>
+        </div>
       </div>
-      <p style="color: var(--muted); font-size: 14px; margin: 16px 0 24px;">${subText}</p>
-      
-      <div class="priority-rating-grid">
-        ${Array.from({length: 10}, (_, i) => {
-          const rating = i + 1;
-          return `<button class="btn pill priority-rating-btn" data-rating="${rating}" onclick="setPriorityRating(${rating})">${rating}</button>`;
-        }).join('')}
-      </div>
-      
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
-        <span style="font-size: 12px; color: var(--muted);">1 = Very Low</span>
-        <span style="font-size: 12px; color: var(--muted);">10 = Very High</span>
-      </div>
-      
-      ${priorityQuestionType === 'importance' ? `
+    `;
+    
+    // Add styles for time chips
+    if (!document.getElementById('time-chips-styles')) {
+      const style = document.createElement('style');
+      style.id = 'time-chips-styles';
+      style.textContent = `
+        .time-chips-container {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 12px;
+          justify-content: center;
+          max-width: 400px;
+          margin: 0 auto;
+        }
+        
+        .time-chip {
+          background: var(--card);
+          border: 2px solid var(--border);
+          border-radius: 12px;
+          padding: 12px 16px;
+          transition: all 0.2s ease;
+          min-width: 110px;
+        }
+        
+        .time-chip.collapsed {
+          opacity: 0.6;
+          border-style: dashed;
+        }
+        
+        .time-chip.expanded {
+          border-color: var(--accent);
+          box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+        }
+        
+        .time-chip-label {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--muted);
+          margin-bottom: 8px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        
+        .time-chip-stepper {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+        }
+        
+        .stepper-btn {
+          width: 32px;
+          height: 32px;
+          border-radius: 8px;
+          border: 1px solid var(--border);
+          background: var(--pill-bg);
+          color: var(--text);
+          font-size: 18px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0;
+          font-family: inherit;
+        }
+        
+        .stepper-btn:hover:not(:disabled) {
+          background: var(--accent);
+          color: white;
+          border-color: var(--accent);
+          transform: translateY(-1px);
+        }
+        
+        .stepper-btn:active:not(:disabled) {
+          transform: translateY(0);
+        }
+        
+        .stepper-btn:disabled {
+          opacity: 0.3;
+          cursor: not-allowed;
+        }
+        
+        .time-value {
+          font-size: 20px;
+          font-weight: 700;
+          color: var(--text);
+          min-width: 30px;
+          text-align: center;
+        }
+        
+        @media (max-width: 560px) {
+          .time-chips-container {
+            flex-direction: column;
+            max-width: 200px;
+          }
+          
+          .time-chip {
+            width: 100%;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+  } else {
+    // Show importance rating (unchanged)
+    const questionText = 'How important is this task?';
+    const subText = 'How critical is this task to your goals? How much would not completing this task impact you?';
+    
+    el.prioritiseBox.innerHTML = `
+      <div style="text-align: center; padding: 20px;">
+        <div class="sec-title" style="margin-bottom: 20px;">${questionText}</div>
+        <div class="task" style="margin: 16px auto; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
+          <div class="title">${escapeHtml(currentPriorityTask.title)}</div>
+        </div>
+        <p style="color: var(--muted); font-size: 14px; margin: 16px 0 24px;">${subText}</p>
+        
+        <div class="priority-rating-grid">
+          ${Array.from({length: 10}, (_, i) => {
+            const rating = i + 1;
+            return `<button class="btn pill priority-rating-btn" data-rating="${rating}" onclick="setPriorityRating(${rating})">${rating}</button>`;
+          }).join('')}
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+          <span style="font-size: 12px; color: var(--muted);">1 = Very Low</span>
+          <span style="font-size: 12px; color: var(--muted);">10 = Very High</span>
+        </div>
+        
         <div style="margin-top: 20px;">
           <button class="btn pill ghost" onclick="goBackToPriorityRating()" style="margin-right: 8px;">Back</button>
         </div>
-      ` : ''}
-    </div>
-  `;
+      </div>
+    `;
+  }
 }
 
 function setPriorityRating(rating) {
   if (!currentPriorityTask) return;
   
-  currentPriorityTask[priorityQuestionType] = rating;
+  // For importance, multiply by 10 to get 10-100 scale (user selects 1-10)
+  // Urgency is already on 1-100 scale from timeframe calculation
+  if (priorityQuestionType === 'importance') {
+    currentPriorityTask[priorityQuestionType] = rating * 10;
+  } else {
+    currentPriorityTask[priorityQuestionType] = rating;
+  }
   currentPriorityTask.updatedAt = nowMs();
   
   if (priorityQuestionType === 'urgency') {
@@ -965,7 +1149,7 @@ function setPriorityRating(rating) {
     const categorized = tasks.filter(t => t.quadrant);
     const nextUnprioritized = categorized.find(t => 
       t.id !== currentPriorityTask.id && 
-      (!t.urgency || !t.importance || (t.urgency === 5 && t.importance === 5))
+      (!t.urgency || !t.importance || (t.urgency === 5 && t.importance === 50))
     );
     
     if (nextUnprioritized) {
@@ -988,12 +1172,183 @@ function goBackToPriorityRating() {
   renderPriorityQuestion();
 }
 
+
+
+function resetDuration() {
+  if (currentPriorityTask) {
+    currentPriorityTask.duration = null;
+  }
+  currentUnitValue = 1;
+  renderPriorityQuestion();
+  showSuccess('Timeframe reset');
+}
+
+// Time chips UI functions
+function adjustTimeUnit(unit, delta) {
+  if (!currentPriorityTask) return;
+  
+  // Get current components
+  const components = currentPriorityTask.duration ? parseDuration(currentPriorityTask.duration) : { years: 0, months: 0, weeks: 0, days: 0 };
+  
+  // Define max values
+  const maxValues = { years: 10, months: 11, weeks: 3, days: 6 };
+  
+  // Update value
+  const currentValue = components[unit] || 0;
+  const newValue = Math.max(0, Math.min(maxValues[unit], currentValue + delta));
+  components[unit] = newValue;
+  
+  // Update duration
+  currentPriorityTask.duration = createDuration(components.years, components.months, components.weeks, components.days);
+  
+  // Re-render
+  renderPriorityQuestion();
+}
+
+function confirmTimeframeChips() {
+  if (!currentPriorityTask) return;
+  
+  const duration = currentPriorityTask.duration;
+  
+  if (!duration) {
+    showError('Please set a timeframe before continuing');
+    return;
+  }
+  
+  const totalDays = parseDurationToDays(duration);
+  
+  if (totalDays === 0) {
+    showError('Please set a timeframe greater than 0');
+    return;
+  }
+  
+  // Calculate target date
+  const now = Date.now();
+  currentPriorityTask.targetDate = now + (totalDays * 24 * 60 * 60 * 1000);
+  
+  // Calculate urgency from timeframe
+  currentPriorityTask.urgency = calculateUrgencyFromTimeframe(totalDays);
+  
+  currentPriorityTask.updatedAt = nowMs();
+  
+  // Move to importance question
+  priorityQuestionType = 'importance';
+  renderPriorityQuestion();
+}
+
+
+
+/**
+ * Parses ISO 8601 duration into component object
+ * Example: P1Y6M2W3D = { years: 1, months: 6, weeks: 2, days: 3 }
+ */
+function parseDuration(duration) {
+  if (!duration) return { years: 0, months: 0, weeks: 0, days: 0 };
+  
+  const regex = /P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?/;
+  const match = duration.match(regex);
+  
+  if (!match) return { years: 0, months: 0, weeks: 0, days: 0 };
+  
+  return {
+    years: parseInt(match[1] || 0),
+    months: parseInt(match[2] || 0),
+    weeks: parseInt(match[3] || 0),
+    days: parseInt(match[4] || 0)
+  };
+}
+
+/**
+ * Converts ISO 8601 duration to total days
+ * Example: P1Y6M2W3D = 1 year + 6 months + 2 weeks + 3 days
+ */
+function parseDurationToDays(duration) {
+  const components = parseDuration(duration);
+  return (components.years * 365) + (components.months * 30) + (components.weeks * 7) + components.days;
+}
+
+/**
+ * Creates ISO 8601 duration from components
+ * Example: createDuration(1, 6, 2, 3) = "P1Y6M2W3D"
+ */
+function createDuration(years = 0, months = 0, weeks = 0, days = 0) {
+  if (years === 0 && months === 0 && weeks === 0 && days === 0) return null;
+  
+  let duration = 'P';
+  if (years > 0) duration += `${years}Y`;
+  if (months > 0) duration += `${months}M`;
+  if (weeks > 0) duration += `${weeks}W`;
+  if (days > 0) duration += `${days}D`;
+  
+  return duration;
+}
+
+/**
+ * Formats duration for display
+ * Example: P1Y6M2W3D = "1 year, 6 months, 2 weeks, 3 days"
+ */
+function formatDuration(duration) {
+  if (!duration) return '';
+  
+  const regex = /P(?:(\d+)Y)?(?:(\d+)M)?(?:(\d+)W)?(?:(\d+)D)?/;
+  const match = duration.match(regex);
+  
+  if (!match) return '';
+  
+  const parts = [];
+  const years = parseInt(match[1] || 0);
+  const months = parseInt(match[2] || 0);
+  const weeks = parseInt(match[3] || 0);
+  const days = parseInt(match[4] || 0);
+  
+  if (years > 0) parts.push(`${years} year${years > 1 ? 's' : ''}`);
+  if (months > 0) parts.push(`${months} month${months > 1 ? 's' : ''}`);
+  if (weeks > 0) parts.push(`${weeks} week${weeks > 1 ? 's' : ''}`);
+  if (days > 0) parts.push(`${days} day${days > 1 ? 's' : ''}`);
+  
+  return parts.join(', ');
+}
+
+/**
+ * Converts timeframe (in days) to urgency score (1-100)
+ * Uses a more granular scale to provide finer priority distinctions:
+ * - 1 day or less = 100 (most urgent)
+ * - 1 week = 85
+ * - 2 weeks = 75
+ * - 1 month = 60
+ * - 2 months = 45
+ * - 3 months = 35
+ * - 6 months = 20
+ * - 1 year = 10
+ * - More than 1 year = 1 (least urgent)
+ */
+function calculateUrgencyFromTimeframe(totalDays) {
+  if (totalDays <= 0) return 100; // Immediate/overdue
+  if (totalDays <= 1) return 100; // Today
+  if (totalDays <= 2) return 95;  // Tomorrow
+  if (totalDays <= 3) return 90;  // 3 days
+  if (totalDays <= 7) return 85;  // This week
+  if (totalDays <= 10) return 80; // 10 days
+  if (totalDays <= 14) return 75; // 2 weeks
+  if (totalDays <= 21) return 70; // 3 weeks
+  if (totalDays <= 30) return 60; // 1 month
+  if (totalDays <= 45) return 50; // 1.5 months
+  if (totalDays <= 60) return 45; // 2 months
+  if (totalDays <= 90) return 35; // 3 months
+  if (totalDays <= 120) return 28; // 4 months
+  if (totalDays <= 180) return 20; // 6 months
+  if (totalDays <= 270) return 15; // 9 months
+  if (totalDays <= 365) return 10; // 1 year
+  return Math.max(1, Math.floor(10 - (totalDays - 365) / 365)); // Diminishing after 1 year, minimum 1
+}
+
 function editTaskPriority(taskId) {
   const task = tasks.find(t => t.id === taskId);
   if (!task) return;
   
   currentPriorityTask = task;
   priorityQuestionType = 'urgency';
+  
   renderPriorityQuestion();
 }
 
@@ -1121,7 +1476,7 @@ const modal=document.getElementById('settingsModal');
 function applyFont(f){ document.documentElement.style.setProperty('--font-family', f); saveUserSettings(); }
 function exportTasks(){ const data={ tasks, settings: JSON.parse(localStorage.getItem('covey_settings')||'{}'), exported:new Date().toISOString() }; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`covey-todo-${new Date().toISOString().split('T')[0]}.json`; a.click(); URL.revokeObjectURL(url); showSuccess('Tasks exported'); }
 function importTasks(file){ if(!file) return; const r=new FileReader(); r.onload=(e)=>{ try{ const data=JSON.parse(e.target.result); if(data.tasks && Array.isArray(data.tasks)){ if(confirm(`Import ${data.tasks.length} tasks? This will replace your current tasks.`)){ tasks=data.tasks; saveLocal(); queueUpload(); markForUpdate(['step1','step2','step3']); renderState.suggestions=true; render(); showSuccess(`Imported ${data.tasks.length} tasks`); } } else { showError('Invalid file format'); } } catch(err){ console.error('Import error:',err); showError('Failed to import tasks'); } }; r.readAsText(file); el.importFile.value=''; }
-function saveUserSettings(){ try{ const s={ fontFamily: el.fontSelect?.value || 'system-ui, -apple-system, \'Segoe UI\', Roboto, Inter, Arial, sans-serif', confirmDeletes: el.confirmDeletes?.checked !== false, enableAnimations: el.enableAnimations?.checked !== false, autoFocusInput: el.autoFocusInput?.checked !== false }; localStorage.setItem('covey_settings', JSON.stringify(s)); }catch(e){ console.warn('Could not save settings:', e); }}
+function saveUserSettings(){ try{ const s={ fontFamily: el.fontSelect?.value || 'system-ui, -apple-system, \'Segoe UI\', Roboto, Inter, Arial, sans-serif', confirmDeletes: el.confirmDeletes?.checked !== false, enableAnimations: el.enableAnimations?.checked !== false, autoFocusInput: el.autoFocusInput?.checked !== false, showPriorityDetails: el.showPriorityDetails?.checked || false }; localStorage.setItem('covey_settings', JSON.stringify(s)); markForUpdate(['step3']); render(); }catch(e){ console.warn('Could not save settings:', e); }}
 function loadUserSettings(){ try{ const s=JSON.parse(localStorage.getItem('covey_settings')||'{}'); if(s.fontFamily){ document.documentElement.style.setProperty('--font-family', s.fontFamily); } return s; }catch(e){ return {}; }}
 
 /* ========= Authentication modal ========= */
@@ -1164,7 +1519,7 @@ function initializeFirebase(){ try{
         const remoteTasks = Array.isArray(data.tasks)? data.tasks : [];
         const remoteUpdated = Number(data.updatedAt || 0);
         if(remoteUpdated > lastPushedAt){
-          tasks = remoteTasks;
+          tasks = remoteTasks.map(task => ({ ...task, timeframeValue: task.timeframeValue !== undefined ? task.timeframeValue : null, timeframeUnit: task.timeframeUnit !== undefined ? task.timeframeUnit : null, targetDate: task.targetDate !== undefined ? task.targetDate : null }));
           saveLocal();
           markForUpdate(['step1','step2','step3']);
           render();
@@ -1196,7 +1551,7 @@ function byId(id){ return document.getElementById(id); }
 function escapeHtml(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
 
 function __recordDelete(){}
-function loadSettingsIntoUI(){ try{ const s=JSON.parse(localStorage.getItem('covey_settings')||'{}'); if(el.fontSelect && s.fontFamily) el.fontSelect.value=s.fontFamily; if(el.confirmDeletes) el.confirmDeletes.checked = s.confirmDeletes !== false; if(el.enableAnimations) el.enableAnimations.checked = s.enableAnimations !== false; if(el.autoFocusInput) el.autoFocusInput.checked = s.autoFocusInput !== false; }catch{} }
+function loadSettingsIntoUI(){ try{ const s=JSON.parse(localStorage.getItem('covey_settings')||'{}'); if(el.fontSelect && s.fontFamily) el.fontSelect.value=s.fontFamily; if(el.confirmDeletes) el.confirmDeletes.checked = s.confirmDeletes !== false; if(el.enableAnimations) el.enableAnimations.checked = s.enableAnimations !== false; if(el.autoFocusInput) el.autoFocusInput.checked = s.autoFocusInput !== false; if(el.showPriorityDetails) el.showPriorityDetails.checked = s.showPriorityDetails || false; }catch{} }
 function isFirebaseReady(){ return !!(window.firebase && firebase.apps && firebase.apps.length && auth && db); }
 
 // Cloud sync (debounced push)
