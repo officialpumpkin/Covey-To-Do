@@ -893,7 +893,10 @@ function renderPrioritise() {
         <div style="display: flex; align-items: center; gap: 12px;">
           <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTaskCompletion('${task.id}')" style="accent-color: var(--accent); margin: 0;">
           <div style="flex: 1;">
-            <div class="title ${task.completed ? 'strike' : ''}" style="margin-bottom: 4px; font-weight: 600;">${escapeHtml(task.title)}</div>
+            <div class="title ${task.completed ? 'strike' : ''}" style="margin-bottom: 4px; font-weight: 600;">
+              ${escapeHtml(task.title)}
+              ${task.duration ? `<span style="font-size: 11px; color: var(--muted); font-weight: 400; margin-left: 6px; background: var(--pill-bg); padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); display: inline-block;">${formatDuration(task.duration)}</span>` : ''}
+            </div>
             ${showDetails ? `<div style="font-size: 12px; color: var(--muted);">
               Priority Score: ${priority} (U:${task.urgency || 50} × I:${task.importance || 50})
             </div>` : ''}
