@@ -568,7 +568,7 @@ function initializeEventHandlers() {
 
 
 /* ========= Suggestions ========= */
-function computeSuggestions(){ try{ const verbs=new Map(); for(const t of tasks){ const title=t.title||''; const w=title.split(/\s+/)[0]?.toLowerCase()||''; if(!w) continue; verbs.set(w,(verbs.get(w)||0)+1); } const common=Array.from(verbs.entries()).sort((a,b)=>b[1]-a[1]).map(([w])=>w).filter(w=>w.length>2); const base=["Plan","Book","Email","Call","Review","Draft","Schedule","Organise"]; const pool=[...new Set([...common,...base])].slice(0,8); return pool.map(v=> v.charAt(0).toUpperCase()+v.slice(1)+' …'); }catch(e){ return ["Plan …","Email …","Call …","Review …"]; } }
+function computeSuggestions(){ try{ const verbs=new Map(); for(const t of tasks){ const title=t.title||''; const w=title.split(/\s+/)[0]?.toLowerCase()||''; if(!w) continue; verbs.set(w,(verbs.get(w)||0)+1); } const common=Array.from(verbs.entries()).sort((a,b)=>b[1]-a[1]).map(([w])=>w.charAt(0).toUpperCase()+w.slice(1)).filter(w=>w.length>2); const base=["Plan","Book","Email","Call","Review","Draft","Schedule","Organise"]; const pool=[...new Set([...common,...base])].slice(0,8); return pool.map(v=> v+' …'); }catch(e){ return ["Plan …","Email …","Call …","Review …"]; } }
 function applySuggestion(s){ const txt = s.endsWith(' …')? s.slice(0,-2)+' ' : s+' '; el.taskInput.value=txt; el.taskInput.focus(); el.taskInput.setSelectionRange(txt.length, txt.length); }
 
 /* ========= Categorise flow ========= */
@@ -895,7 +895,7 @@ function renderPrioritise() {
           <div style="flex: 1;">
             <div class="title ${task.completed ? 'strike' : ''}" style="margin-bottom: 4px; font-weight: 600;">
               ${escapeHtml(task.title)}
-              ${task.duration ? `<span style="font-size: 11px; color: var(--muted); font-weight: 400; margin-left: 6px; background: var(--pill-bg); padding: 2px 8px; border-radius: 999px; border: 1px solid var(--border); display: inline-block;">${formatDuration(task.duration)}</span>` : ''}
+              ${task.duration ? (() => { const u = task.urgency || 0; let s = 'color: #10b981; background: rgba(16,185,129,0.1); border-color: rgba(16,185,129,0.2)'; if(u >= 80) s = 'color: #ef4444; background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2)'; else if(u >= 50) s = 'color: #f59e0b; background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.2)'; return `<span style="font-size: 11px; font-weight: 500; margin-left: 6px; padding: 2px 8px; border-radius: 999px; border: 1px solid; display: inline-block; ${s}">${formatDuration(task.duration)}</span>`; })() : ''}
             </div>
             ${showDetails ? `<div style="font-size: 12px; color: var(--muted);">
               Priority Score: ${priority} (U:${task.urgency || 50} × I:${task.importance || 50})
@@ -962,8 +962,10 @@ function renderPriorityQuestion() {
     el.prioritiseBox.innerHTML = `
       <div style="text-align: center; padding: 20px;">
         <div class="sec-title" style="margin-bottom: 20px;">How long do you need to complete this task?</div>
-        <div class="task" style="margin: 16px auto; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
-          <div class="title">${escapeHtml(currentPriorityTask.title)}</div>
+        <div class="task" style="margin: 16px auto; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 0;">
+          <input type="text" id="editTitleInput" value="${escapeHtml(currentPriorityTask.title)}" aria-label="Edit task title" 
+            style="width:100%; border:none; background:transparent; font-weight:600; font-size:16px; padding:16px; text-align:center; color:var(--text); outline:none;"
+            onchange="updateTaskTitle(this.value)" />
         </div>
         ${totalDays > 0 && durationText ? `
           <div style="background: rgba(37, 99, 235, 0.1); border: 1px solid var(--accent); border-radius: 8px; padding: 12px; margin: 16px auto; max-width: 500px;">
@@ -1102,15 +1104,20 @@ function renderPriorityQuestion() {
     el.prioritiseBox.innerHTML = `
       <div style="text-align: center; padding: 20px;">
         <div class="sec-title" style="margin-bottom: 20px;">${questionText}</div>
-        <div class="task" style="margin: 16px auto; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 16px;">
-          <div class="title">${escapeHtml(currentPriorityTask.title)}</div>
+        <div class="task" style="margin: 16px auto; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 0;">
+          <input type="text" id="editTitleInputImp" value="${escapeHtml(currentPriorityTask.title)}" aria-label="Edit task title" 
+            style="width:100%; border:none; background:transparent; font-weight:600; font-size:16px; padding:16px; text-align:center; color:var(--text); outline:none;"
+            onchange="updateTaskTitle(this.value)" />
         </div>
         <p style="color: var(--muted); font-size: 14px; margin: 16px 0 24px;">${subText}</p>
         
         <div class="priority-rating-grid">
           ${Array.from({length: 10}, (_, i) => {
             const rating = i + 1;
-            return `<button class="btn pill priority-rating-btn" data-rating="${rating}" onclick="setPriorityRating(${rating})">${rating}</button>`;
+            const currentRating = currentPriorityTask[priorityQuestionType] === 'importance' ? currentPriorityTask.importance / 10 : (currentPriorityTask.importance || 0) / 10;
+            const isSelected = rating === currentRating;
+            const style = isSelected ? 'background: var(--accent); color: white; border-color: var(--accent);' : '';
+            return `<button class="btn pill priority-rating-btn" style="${style}" data-rating="${rating}" onclick="setPriorityRating(${rating})">${rating}</button>`;
           }).join('')}
         </div>
         
@@ -1119,8 +1126,11 @@ function renderPriorityQuestion() {
           <span style="font-size: 12px; color: var(--muted);">10 = Very High</span>
         </div>
         
-        <div style="margin-top: 20px;">
-          <button class="btn pill ghost" onclick="goBackToPriorityRating()" style="margin-right: 8px;">Back</button>
+        <div style="margin-top: 20px; display: flex; justify-content: center; gap: 12px;">
+          <button class="btn pill ghost" onclick="goBackToPriorityRating()">Back</button>
+          ${currentPriorityTask.importance && currentPriorityTask.importance !== 50 ? 
+            `<button class="btn pill ghost" onclick="setPriorityRating(${currentPriorityTask.importance / 10})">Skip (Keep ${currentPriorityTask.importance / 10})</button>` 
+            : ''}
         </div>
       </div>
     `;
@@ -1129,6 +1139,12 @@ function renderPriorityQuestion() {
 
 function setPriorityRating(rating) {
   if (!currentPriorityTask) return;
+  
+  // Save title edit if input exists (Importance screen)
+  const titleInput = document.getElementById('editTitleInputImp');
+  if (titleInput && titleInput.value.trim()) {
+    currentPriorityTask.title = titleInput.value.trim();
+  }
   
   // For importance, multiply by 10 to get 10-100 scale (user selects 1-10)
   // Urgency is already on 1-100 scale from timeframe calculation
@@ -1208,8 +1224,22 @@ function adjustTimeUnit(unit, delta) {
   renderPriorityQuestion();
 }
 
+function updateTaskTitle(newTitle) {
+  if (!currentPriorityTask || !newTitle.trim()) return;
+  currentPriorityTask.title = newTitle.trim();
+  currentPriorityTask.updatedAt = nowMs();
+  saveLocal();
+  queueUpload();
+}
+
 function confirmTimeframeChips() {
   if (!currentPriorityTask) return;
+  
+  // Save title edit if input exists
+  const titleInput = document.getElementById('editTitleInput');
+  if (titleInput && titleInput.value.trim()) {
+    currentPriorityTask.title = titleInput.value.trim();
+  }
   
   const duration = currentPriorityTask.duration;
   
@@ -1465,10 +1495,30 @@ function updateCategoriseBox(current){ if(!current){ el.categoriseBox.innerHTML=
       <button class="btn pill ghost" onclick="answerUrgent(null)">Back</button>
     </div>`; } }
 function markForUpdate(parts=['step1','step2','step3']){ parts.forEach(p=>{ if(p in renderState) renderState[p]=true; }); }
-function rowItem(t,opts){ const li=document.createElement('li'); li.dataset.id=t.id; li.className='task'+((opts&&opts.showQuadrant&&t.quadrant)?(' q-'+t.quadrant):''); li.setAttribute('role','listitem'); const cb=document.createElement('input'); cb.type='checkbox'; cb.id=`task-${t.id}`; cb.checked=t.completed; cb.setAttribute('aria-describedby',`task-title-${t.id}`); cb.onchange=()=>{ t.completed=!t.completed; t.updatedAt=Date.now(); saveLocal(); queueUpload(); const updates=['step3']; if(!t.quadrant) updates.push('step1'); if(t.quadrant) updates.push('step2'); markForUpdate(updates); render(); }; const title=document.createElement('div'); title.className='title'; title.id=`task-title-${t.id}`; title.textContent=t.title||''; if(t.completed){ title.className+=' strike'; } if(opts&&opts.showQuadrant&&t.quadrant){ const pill=document.createElement('span'); pill.className='qpill '+t.quadrant; pill.textContent=t.quadrant; pill.setAttribute('aria-label',`Priority quadrant ${t.quadrant}`); title.appendChild(pill); }
+function rowItem(t,opts){ const li=document.createElement('li'); li.dataset.id=t.id; li.className='task'+((opts&&opts.showQuadrant&&t.quadrant)?(' q-'+t.quadrant):''); li.setAttribute('role','listitem'); const cb=document.createElement('input'); cb.type='checkbox'; cb.id=`task-${t.id}`; cb.checked=t.completed; cb.setAttribute('aria-describedby',`task-title-${t.id}`); cb.onchange=()=>{ t.completed=!t.completed; t.updatedAt=Date.now(); saveLocal(); queueUpload(); const updates=['step3']; if(!t.quadrant) updates.push('step1'); if(t.quadrant) updates.push('step2'); markForUpdate(updates); render(); }; 
+  const title=document.createElement('input'); 
+  title.type='text';
+  title.className='title'; 
+  title.id=`task-title-${t.id}`; 
+  title.value=t.title||''; 
+  title.style.cssText="flex:1; border:none; background:transparent; font-weight:600; font-family:inherit; color:inherit; padding:0; margin:0; outline:none; font-size:inherit;";
+  title.ariaLabel='Edit task title';
+  title.onchange=(e)=>{ const v=e.target.value.trim(); if(v){ t.title=v; t.updatedAt=Date.now(); saveLocal(); queueUpload(); } else { e.target.value=t.title; } };
+  if(t.completed){ title.className+=' strike'; } 
+  if(opts&&opts.showQuadrant&&t.quadrant){ const pill=document.createElement('span'); pill.className='qpill '+t.quadrant; pill.textContent=t.quadrant; pill.setAttribute('aria-label',`Priority quadrant ${t.quadrant}`); title.parentNode.insertBefore(pill, title.nextSibling); }
   const spacer=document.createElement('div'); spacer.className='spacer'; const del=document.createElement('button'); del.className='btn pill ghost closebtn'; del.textContent='×'; del.setAttribute('aria-label',`Delete task: ${t.title}`); del.title='Delete task'; del.onclick=()=> requestDelete(t, ()=>{ tasks = tasks.filter(x=>x.id!==t.id); saveLocal(); queueUpload(); __recordDelete(); markForUpdate(['step1','step2','step3']); render(); }); li.append(cb,title,spacer,del); return li; }
 function mountQuadrantList(container, arr, key){ if(!arr.length){ const li=document.createElement('li'); li.className='empty-state'; li.setAttribute('role','listitem'); li.style.padding='20px'; li.innerHTML='<p style="font-size:13px;color:var(--muted)">No tasks in this quadrant</p>'; container.innerHTML=''; container.appendChild(li); return; } const frag=document.createDocumentFragment(); arr.forEach(t=>{ frag.appendChild(createQuadrantListItem(t,key)); }); container.innerHTML=''; container.appendChild(frag); }
-function createQuadrantListItem(t,key){ const li=document.createElement('li'); li.className='task quadrant-task'; li.dataset.id=t.id; li.setAttribute('role','listitem'); const title=document.createElement('div'); title.className='title'; title.id=`task-title-${key}-${t.id}`; title.textContent=t.title||''; if(t.completed){ title.className+=' strike'; } const spacer=document.createElement('div'); spacer.className='spacer'; const actions=document.createElement('div'); actions.className='row-actions'; actions.setAttribute('role','group'); actions.setAttribute('aria-label',`Actions for ${t.title}`);
+function createQuadrantListItem(t,key){ const li=document.createElement('li'); li.className='task quadrant-task'; li.dataset.id=t.id; li.setAttribute('role','listitem'); 
+  const title=document.createElement('input'); 
+  title.type='text';
+  title.className='title'; 
+  title.id=`task-title-${key}-${t.id}`; 
+  title.value=t.title||''; 
+  title.style.cssText="width:100%; border:none; background:transparent; font-weight:500; font-size:15px; margin-bottom:8px; display:block; font-family:inherit; color:inherit; padding:0; outline:none;";
+  title.ariaLabel='Edit task title';
+  title.onchange=(e)=>{ const v=e.target.value.trim(); if(v){ t.title=v; t.updatedAt=Date.now(); saveLocal(); queueUpload(); } else { e.target.value=t.title; } };
+  if(t.completed){ title.className+=' strike'; } 
+  const spacer=document.createElement('div'); spacer.className='spacer'; const actions=document.createElement('div'); actions.className='row-actions'; actions.setAttribute('role','group'); actions.setAttribute('aria-label',`Actions for ${t.title}`);
   const decat=document.createElement('button'); decat.className='btn pill ghost'; decat.setAttribute('aria-label',`Reset category for ${t.title}`); decat.title='Reset category'; decat.textContent='Reset Category'; decat.onclick=()=>{ t.quadrant=null; t.rank=null; t.updatedAt=Date.now(); saveLocal(); queueUpload(); markForUpdate(['step1','step2','step3']); render(); };
   actions.append(decat); li.append(title,spacer,actions); return li; }
 
