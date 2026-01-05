@@ -30,7 +30,7 @@
 *{box-sizing:border-box}
 body{margin:0;font-family:var(--font-family, Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif);background:var(--bg);color:var(--text)}
 .container{max-width:980px;margin:0 auto;padding:16px;text-align:center}
-header{margin:6px 0 12px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+header{margin:6px 0 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;max-width:var(--card-max);margin-left:auto;margin-right:auto}
 h1{font-size:20px;margin:0}
 
 /* Cards */
@@ -49,6 +49,8 @@ h1{font-size:20px;margin:0}
 /* Stepper */
 .btnrow{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;max-width:var(--card-max);margin:10px auto}
 .btnrow>.btn{flex:1 1 0;max-width:240px}
+#stepper{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;max-width:var(--card-max);margin:10px auto}
+#stepper>.btn{flex:1 1 0;max-width:none;min-width:120px}
 
 /* Input row */
 #addForm{display:grid;grid-template-columns:1fr auto;gap:12px}
@@ -112,7 +114,7 @@ input[type="text"],textarea{border:1px solid var(--border);border-radius:999px;p
 .btn.icon{min-width:36px;min-height:36px;padding:0 0;border-radius:10px}
 .btn.icon span{font-size:16px;line-height:1}
 
-/* List-style item for categorize & prioritize */
+/* List-style item for categorise & prioritise */
 .quadrant-task{padding:16px;border:none;border-radius:8px;background:transparent;margin-bottom:8px;border-bottom:1px solid rgba(0,0,0,.06);width:100%;max-width:100%;box-sizing:border-box;display:block}
 .quadrant-task:last-child{border-bottom:none}
 .quadrant-task .title{font-weight:500;font-size:15px;margin-bottom:8px;width:100%}
@@ -121,11 +123,11 @@ input[type="text"],textarea{border:1px solid var(--border);border-radius:999px;p
 .quadrant-task .row-actions .btn.primary{background:var(--accent);color:white;border:none}
 
 /* Accessible checkboxes */
-input[type="checkbox"]{-webkit-appearance:none;appearance:none;width:18px;height:18px;margin:0 8px 0 0;border-radius:6px;border:2px solid var(--muted);background:var(--pill-bg);display:inline-grid;place-content:center;transition:background .12s ease,border-color .12s ease,box-shadow .12s ease,transform .05s ease}
+input[type="checkbox"]{-webkit-appearance:none;appearance:none;width:18px;height:18px;margin:0 8px 0 0;border-radius:6px;border:2px solid var(--muted);background:var(--pill-bg);display:inline-grid;place-content:center;transition:background .12s ease,border-color .12s ease,box-shadow .12s ease,transform .05s ease;position:relative}
 input[type="checkbox"]:hover{transform:translateY(-1px)}
 input[type="checkbox"]:focus{outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.35)}
 input[type="checkbox"]:checked{background:var(--accent);border-color:var(--accent)}
-input[type="checkbox"]:checked::after{content:"";width:10px;height:6px;border:2px solid #fff;border-top:0;border-left:0;transform:translateY(-1px) rotate(45deg)}
+input[type="checkbox"]:checked::after{content:"";position:absolute;left:3px;top:1px;width:5px;height:10px;border-right:2px solid #fff;border-bottom:2px solid #fff;border-top:none;border-left:none;transform:rotate(45deg)}
 
 /* Responsive */
 @media (max-width:560px){
@@ -140,7 +142,7 @@ input[type="checkbox"]:checked::after{content:"";width:10px;height:6px;border:2p
   .quadrant-task{padding:12px}
   
   /* Better mobile header layout */
-  header{flex-direction:column;gap:8px;margin:8px 0 12px}
+  header{flex-direction:column;gap:8px;margin:8px 0 12px!important;max-width:100%!important;margin-left:0!important;margin-right:0!important}
   header > div:first-child{flex:none;justify-content:center}
   header h1{order:1}
   header .row{order:3;flex:none;justify-content:center!important;flex-wrap:wrap;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
@@ -181,7 +183,7 @@ input[type="checkbox"]:checked::after{content:"";width:10px;height:6px;border:2p
       <button id="themeToggle" class="btn pill ghost toggle" aria-label="Toggle theme" style="min-height:36px">🌓</button>
     </div>
     <h1 style="margin:0; flex: 0 0 auto;">Covey To‑Do</h1>
-    <div class="row" style="flex: 1; justify-content:flex-end; gap:12px">
+    <div class="row" style="flex: 1; display: flex; justify-content:flex-end; gap:12px">
       <span id="authStatus" class="pill" style="min-height:36px;font-weight:600;padding:8px 14px;font-size:13px;display:inline-flex;align-items:center">Signed out</span>
       <button id="signInBtn" class="btn pill primary" aria-haspopup="dialog" aria-controls="signInModal" style="font-weight:700;min-height:36px">Sign in</button>
       <button id="settingsBtn" class="btn pill ghost" aria-haspopup="dialog" aria-controls="settingsModal" style="min-height:36px">⚙︎</button>
@@ -193,7 +195,7 @@ input[type="checkbox"]:checked::after{content:"";width:10px;height:6px;border:2p
     <button id="step1Btn" class="btn pill primary" role="tab" aria-selected="true" aria-controls="step1" tabindex="0">1. Add</button>
     <button id="step2Btn" class="btn pill ghost" role="tab" aria-selected="false" aria-controls="step2" tabindex="-1">2. Categorise</button>
     <button id="step3Btn" class="btn pill ghost" role="tab" aria-selected="false" aria-controls="step3" tabindex="-1">3. Prioritise & Manage</button>
-    <button id="step4Btn" class="btn pill ghost" role="tab" aria-selected="false" aria-controls="step4" tabindex="-1">4. Visualize</button>
+    <button id="step4Btn" class="btn pill ghost" role="tab" aria-selected="false" aria-controls="step4" tabindex="-1">4. Visualise</button>
   </nav>
 
   <!-- Step 1: Add -->
@@ -206,7 +208,7 @@ input[type="checkbox"]:checked::after{content:"";width:10px;height:6px;border:2p
       <div id="suggestions" class="chips" role="group" aria-label="Task suggestions"></div>
     </div>
     <div class="card">
-      <ul id="inboxList" class="list" role="list" aria-label="Uncategorized tasks"></ul>
+      <ul id="inboxList" class="list" role="list" aria-label="Uncategorised tasks"></ul>
     </div>
   </section>
 
@@ -214,6 +216,11 @@ input[type="checkbox"]:checked::after{content:"";width:10px;height:6px;border:2p
   <section id="step2" class="view" role="tabpanel" aria-labelledby="step2Btn" aria-hidden="true">
     <div class="card">
       <p style="color:var(--muted);font-size:14px;margin:0 0 16px;text-align:center">Assign tasks to quadrants based on urgency and importance</p>
+      <div class="btnrow" style="margin-bottom:16px">
+        <label class="btn pill ghost" style="gap:8px; min-height:36px; min-width:auto">
+          <input id="showCompletedStep2" type="checkbox"> Show completed
+        </label>
+      </div>
       <div id="categoriseBox"></div>
     </div>
     <div class="quads" role="region" aria-label="Eisenhower Matrix - Task Quadrants">
@@ -243,7 +250,7 @@ input[type="checkbox"]:checked::after{content:"";width:10px;height:6px;border:2p
       <p style="color:var(--muted);font-size:14px;margin:0 0 16px;text-align:center">Rate each task's urgency and importance (1-10) to calculate priority weighting</p>
       <div class="btnrow" style="margin-bottom:16px">
         <label class="btn pill ghost" style="gap:8px; min-height:36px; min-width:auto">
-          <input id="showCompleted" type="checkbox" style="accent-color:var(--accent)"> Show completed
+          <input id="showCompleted" type="checkbox"> Show completed
         </label>
         <button id="clearBtn" class="btn pill ghost" aria-label="Clear all tasks">Clear all</button>
       </div>
@@ -251,14 +258,14 @@ input[type="checkbox"]:checked::after{content:"";width:10px;height:6px;border:2p
     </div>
   </section>
 
-  <!-- Step 4: Visualize -->
+  <!-- Step 4: Visualise -->
   <section id="step4" class="view" role="tabpanel" aria-labelledby="step4Btn" aria-hidden="true">
     <div class="card">
       <p style="color:var(--muted);font-size:14px;margin:0 0 16px;text-align:center">Visual mind map of your tasks sized by priority</p>
       
       <div style="display: flex; justify-content: center; gap: 16px; margin-bottom: 20px;">
         <label style="display: flex; align-items: center; gap: 8px; font-size: 14px;">
-          <input type="checkbox" id="showCompletedMindMap" style="accent-color: var(--accent);">
+          <input type="checkbox" id="showCompletedMindMap">
           Show completed tasks
         </label>
       </div>
@@ -309,12 +316,12 @@ input[type="checkbox"]:checked::after{content:"";width:10px;height:6px;border:2p
           Enable animations
         </label>
         <label class="row" style="gap:8px; display:flex; align-items:center">
-          <input id="autoFocusInput" type="checkbox" checked> 
-          Auto-focus task input
-        </label>
-        <label class="row" style="gap:8px; display:flex; align-items:center">
           <input id="showPriorityDetails" type="checkbox" onchange="saveUserSettings()"> 
           Show priority calculation details
+        </label>
+        <label class="row" style="gap:8px; display:flex; align-items:center">
+          <input id="enableBetaFeatures" type="checkbox" onchange="saveUserSettings(); toggleBetaFeatures();"> 
+          Enable beta features
         </label>
       </div>
     </div>
@@ -408,6 +415,7 @@ let tasks = loadLocal();
 let step = 1;
 let answeredUrgent = null;
 let showCompleted = false;
+let showCompletedStep2 = false;
 
 // Sync helpers
 let db = null;
@@ -441,13 +449,13 @@ document.addEventListener('DOMContentLoaded', function() {
     listQ1:byId('listQ1'), listQ2:byId('listQ2'), listQ3:byId('listQ3'), listQ4:byId('listQ4'),
     categoriseBox:byId('categoriseBox'), prioritiseBox:byId('prioritiseBox'), suggestions:byId('suggestions'),
     mindMapSvg:byId('mindMapSvg'), showCompletedMindMap:byId('showCompletedMindMap'),
-    showCompleted:byId('showCompleted'), clearBtn:byId('clearBtn'),
+    showCompleted:byId('showCompleted'), showCompletedStep2:byId('showCompletedStep2'), clearBtn:byId('clearBtn'),
     settingsBtn:byId('settingsBtn'), settingsModal:byId('settingsModal'), closeSettings:byId('closeSettings'),
     signInBtn:byId('signInBtn'), signInModal:byId('signInModal'), closeSignIn:byId('closeSignIn'),
     signInForm:byId('signInForm'), emailInput:byId('emailInput'), passwordInput:byId('passwordInput'),
     createAccountBtn:byId('createAccountBtn'), googleSignInBtn:byId('googleSignInBtn'), authStatus:byId('authStatus'), authStatusModal:byId('authStatusModal'),
     saveSettings:byId('saveSettings'), accentSwatches:byId('accentSwatches'), accentCustom:byId('accentCustom'), accentApply:byId('accentApply'),
-    fontSelect:byId('fontSelect'), confirmDeletes:byId('confirmDeletes'), enableAnimations:byId('enableAnimations'), autoFocusInput:byId('autoFocusInput'), showPriorityDetails:byId('showPriorityDetails'),
+    fontSelect:byId('fontSelect'), confirmDeletes:byId('confirmDeletes'), enableAnimations:byId('enableAnimations'), showPriorityDetails:byId('showPriorityDetails'), enableBetaFeatures:byId('enableBetaFeatures'),
     exportData:byId('exportData'), importData:byId('importData'), importFile:byId('importFile') };
   
   // Set up event listeners
@@ -487,6 +495,9 @@ document.addEventListener('DOMContentLoaded', function() {
   renderState.suggestions=true;
   render();
   
+  // Apply beta features setting
+  toggleBetaFeatures();
+  
   // Welcome message
   showInfo('Welcome to Covey To-Do!');
 });
@@ -516,7 +527,7 @@ function buildSwatches(){ el.accentSwatches.innerHTML=''; PRESET_ACCENTS.forEach
 
 
 /* ========= Step nav ========= */
-function setStep(n){ if(step===n) return; step=n; const secs=[el.step1,el.step2,el.step3,el.step4]; const btns=[el.step1Btn,el.step2Btn,el.step3Btn,el.step4Btn]; secs.forEach((sec,i)=>{ if(i===n-1){ sec.classList.add('active'); sec.setAttribute('aria-hidden','false'); } else { sec.classList.remove('active'); sec.setAttribute('aria-hidden','true'); } }); btns.forEach((b,i)=>{ if(i===n-1){ b.className='btn pill primary'; b.setAttribute('aria-selected','true'); b.setAttribute('tabindex','0'); } else { b.className='btn pill ghost'; b.setAttribute('aria-selected','false'); b.setAttribute('tabindex','-1'); } }); const update={}; update[`step${n}`]=true; render(update); }
+function setStep(n){ if(step===n) return; if(n===4){ try{ const s=JSON.parse(localStorage.getItem('covey_settings')||'{}'); if(!(s.enableBetaFeatures || false)){ showInfo('Beta features are disabled. Enable them in settings to access the Visualise step.'); return; } }catch(e){} } step=n; const secs=[el.step1,el.step2,el.step3,el.step4]; const btns=[el.step1Btn,el.step2Btn,el.step3Btn,el.step4Btn]; secs.forEach((sec,i)=>{ if(i===n-1){ sec.classList.add('active'); sec.setAttribute('aria-hidden','false'); } else { sec.classList.remove('active'); sec.setAttribute('aria-hidden','true'); } }); btns.forEach((b,i)=>{ if(i===n-1){ b.className='btn pill primary'; b.setAttribute('aria-selected','true'); b.setAttribute('tabindex','0'); } else { b.className='btn pill ghost'; b.setAttribute('aria-selected','false'); b.setAttribute('tabindex','-1'); } }); const update={}; update[`step${n}`]=true; render(update); }
 
 /* ========= Event Handlers Initialization ========= */
 function initializeEventHandlers() {
@@ -550,6 +561,7 @@ function initializeEventHandlers() {
   
   // Current list controls
   if (el.showCompleted) el.showCompleted.onchange=()=>{ showCompleted=el.showCompleted.checked; markForUpdate(['step3']); render(); };
+  if (el.showCompletedStep2) el.showCompletedStep2.onchange=()=>{ showCompletedStep2=el.showCompletedStep2.checked; markForUpdate(['step2']); render(); };
   if (el.clearBtn) el.clearBtn.onclick=()=>{ const n=tasks.length; if(n===0){ showInfo('No tasks to clear'); return; } if(confirm(`Delete all ${n} tasks? This cannot be undone.`)){ addLoadingState(el.clearBtn); try{ tasks=[]; saveLocal(); queueUpload(true); markForUpdate(['step1','step2','step3']); renderState.suggestions=true; render(); showSuccess(`Cleared ${n} tasks`); } finally { removeLoadingState(el.clearBtn); } } };
   
   // Mind map controls
@@ -589,7 +601,7 @@ function render(forceUpdate={}){
   if(should.suggestions && !should.step1){ renderSuggestions(); renderState.suggestions=false; } 
 }
 function renderStep1(){ const unc=inbox(false); updateList(el.inboxList, unc, {showQuadrant:false}, 'No tasks'); renderSuggestions(); }
-function renderStep2(){ const g=groups(true); const current=inbox(false)[0]; updateCategoriseBox(current); mountQuadrantList(el.listQ1,g.Q1,'Q1'); mountQuadrantList(el.listQ2,g.Q2,'Q2'); mountQuadrantList(el.listQ3,g.Q3,'Q3'); mountQuadrantList(el.listQ4,g.Q4,'Q4'); }
+function renderStep2(){ const g=groups(showCompletedStep2); const current=inbox(false)[0]; updateCategoriseBox(current); mountQuadrantList(el.listQ1,g.Q1,'Q1'); mountQuadrantList(el.listQ2,g.Q2,'Q2'); mountQuadrantList(el.listQ3,g.Q3,'Q3'); mountQuadrantList(el.listQ4,g.Q4,'Q4'); if(el.showCompletedStep2) el.showCompletedStep2.checked=showCompletedStep2; }
 function renderStep3(){ renderPrioritise(); }
 function renderStep4(){ renderMindMap(); }
 
@@ -612,7 +624,7 @@ function renderMindMap() {
     text.setAttribute('text-anchor', 'middle');
     text.setAttribute('fill', 'var(--muted)');
     text.setAttribute('font-size', '14');
-    text.textContent = 'No categorized tasks to visualize';
+    text.textContent = 'No categorised tasks to visualise';
     el.mindMapSvg.appendChild(text);
     return;
   }
@@ -769,8 +781,8 @@ function calculatePriority(task) {
 }
 
 function allSortedByPriority(includeCompleted) {
-  const categorized = tasks.filter(t => t.quadrant && (includeCompleted || !t.completed));
-  return categorized.sort((a, b) => {
+  const categorised = tasks.filter(t => t.quadrant && (includeCompleted || !t.completed));
+  return categorised.sort((a, b) => {
     const priorityA = calculatePriority(a);
     const priorityB = calculatePriority(b);
     return priorityB - priorityA; // Highest priority first
@@ -782,7 +794,7 @@ let currentPriorityTask = null;
 let priorityQuestionType = null; // 'urgency' or 'importance'
 
 function renderPrioritise() {
-  const categorized = tasks.filter(t => t.quadrant && (showCompleted || !t.completed));
+  const categorised = tasks.filter(t => t.quadrant && (showCompleted || !t.completed));
   
   if (!el.prioritiseBox) {
     console.error('prioritiseBox element not found!');
@@ -794,25 +806,25 @@ function renderPrioritise() {
     el.showCompleted.checked = showCompleted;
   }
   
-  if (!categorized.length) {
-    el.prioritiseBox.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px">No categorized tasks to prioritise.<br>Go to step 2 to categorise your tasks first.</div>';
+  if (!categorised.length) {
+    el.prioritiseBox.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px">No categorised tasks to prioritise.<br>Go to step 2 to categorise your tasks first.</div>';
     return;
   }
 
   // Group tasks by quadrant in Q1, Q2, Q3, Q4 order
   const groups = {
-    Q1: categorized.filter(t => t.quadrant === 'Q1').sort((a, b) => calculatePriority(b) - calculatePriority(a)),
-    Q2: categorized.filter(t => t.quadrant === 'Q2').sort((a, b) => calculatePriority(b) - calculatePriority(a)),
-    Q3: categorized.filter(t => t.quadrant === 'Q3').sort((a, b) => calculatePriority(b) - calculatePriority(a)),
-    Q4: categorized.filter(t => t.quadrant === 'Q4').sort((a, b) => calculatePriority(b) - calculatePriority(a))
+    Q1: categorised.filter(t => t.quadrant === 'Q1').sort((a, b) => calculatePriority(b) - calculatePriority(a)),
+    Q2: categorised.filter(t => t.quadrant === 'Q2').sort((a, b) => calculatePriority(b) - calculatePriority(a)),
+    Q3: categorised.filter(t => t.quadrant === 'Q3').sort((a, b) => calculatePriority(b) - calculatePriority(a)),
+    Q4: categorised.filter(t => t.quadrant === 'Q4').sort((a, b) => calculatePriority(b) - calculatePriority(a))
   };
 
   // Check if we need to show priority rating interface
-  // A task is unprioritized if it has no duration set (meaning no timeframe/urgency rating completed)
-  const unprioritized = categorized.find(t => !t.duration);
+  // A task is unprioritised if it has no duration set (meaning no timeframe/urgency rating completed)
+  const unprioritised = categorised.find(t => !t.duration);
   
-  if (unprioritized && !currentPriorityTask) {
-    currentPriorityTask = unprioritized;
+  if (unprioritised && !currentPriorityTask) {
+    currentPriorityTask = unprioritised;
     priorityQuestionType = 'urgency';
   }
 
@@ -891,7 +903,7 @@ function renderPrioritise() {
       
       taskDiv.innerHTML = `
         <div style="display: flex; align-items: center; gap: 12px;">
-          <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTaskCompletion('${task.id}')" style="accent-color: var(--accent); margin: 0;">
+          <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTaskCompletion('${task.id}')" style="margin: 0;">
           <div style="flex: 1;">
             <div class="title ${task.completed ? 'strike' : ''}" style="margin-bottom: 4px; font-weight: 600;">
               ${escapeHtml(task.title)}
@@ -964,7 +976,8 @@ function renderPriorityQuestion() {
         <div class="sec-title" style="margin-bottom: 20px;">How long do you need to complete this task?</div>
         <div class="task" style="margin: 16px auto; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 0;">
           <input type="text" id="editTitleInput" value="${escapeHtml(currentPriorityTask.title)}" aria-label="Edit task title" 
-            style="width:100%; border:none; background:transparent; font-weight:600; font-size:16px; padding:16px; text-align:center; color:var(--text); outline:none;"
+            style="width:100%; border:none; background:transparent; font-weight:600; font-size:16px; padding:16px; text-align:center; color:var(--text); outline:none; ${currentPriorityTask.completed ? 'cursor: default;' : ''}"
+            ${currentPriorityTask.completed ? 'readonly' : ''}
             onchange="updateTaskTitle(this.value)" />
         </div>
         ${totalDays > 0 && durationText ? `
@@ -1106,7 +1119,8 @@ function renderPriorityQuestion() {
         <div class="sec-title" style="margin-bottom: 20px;">${questionText}</div>
         <div class="task" style="margin: 16px auto; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 0;">
           <input type="text" id="editTitleInputImp" value="${escapeHtml(currentPriorityTask.title)}" aria-label="Edit task title" 
-            style="width:100%; border:none; background:transparent; font-weight:600; font-size:16px; padding:16px; text-align:center; color:var(--text); outline:none;"
+            style="width:100%; border:none; background:transparent; font-weight:600; font-size:16px; padding:16px; text-align:center; color:var(--text); outline:none; ${currentPriorityTask.completed ? 'cursor: default;' : ''}"
+            ${currentPriorityTask.completed ? 'readonly' : ''}
             onchange="updateTaskTitle(this.value)" />
         </div>
         <p style="color: var(--muted); font-size: 14px; margin: 16px 0 24px;">${subText}</p>
@@ -1164,24 +1178,24 @@ function setPriorityRating(rating) {
     saveLocal();
     queueUpload();
     
-    // Find next task to prioritize
-    const categorized = tasks.filter(t => t.quadrant);
-    const nextUnprioritized = categorized.find(t => 
+    // Find next task to prioritise
+    const categorised = tasks.filter(t => t.quadrant);
+    const nextUnprioritised = categorised.find(t => 
       t.id !== currentPriorityTask.id && 
       (!t.urgency || !t.importance || (t.urgency === 5 && t.importance === 50))
     );
     
-    if (nextUnprioritized) {
-      currentPriorityTask = nextUnprioritized;
+    if (nextUnprioritised) {
+      currentPriorityTask = nextUnprioritised;
       priorityQuestionType = 'urgency';
       renderPriorityQuestion();
     } else {
-      // All tasks prioritized, show the grid view
+      // All tasks prioritised, show the grid view
       currentPriorityTask = null;
       priorityQuestionType = null;
       markForUpdate(['step3']);
       render();
-      showSuccess('All tasks prioritized!');
+      showSuccess('All tasks prioritised!');
     }
   }
 }
@@ -1476,22 +1490,22 @@ function toggleTaskCompletion(taskId) {
 }
 function renderSuggestions(){ const sugg=computeSuggestions(); el.suggestions.innerHTML=''; const frag=document.createDocumentFragment(); sugg.forEach(s=>{ const b=document.createElement('button'); b.className='chip'; b.type='button'; b.textContent=s; b.onclick=()=>applySuggestion(s); frag.appendChild(b); }); el.suggestions.appendChild(frag); }
 function updateList(container, items, opts, emptyMsg){ if(!items.length){ const li=document.createElement('li'); li.className='empty-state'; li.setAttribute('role','listitem'); li.setAttribute('aria-live','polite'); li.innerHTML=`<p>${escapeHtml(emptyMsg)}</p>`; container.innerHTML=''; container.appendChild(li); return; } const frag=document.createDocumentFragment(); items.forEach(item=> frag.appendChild(rowItem(item,opts))); container.innerHTML=''; container.appendChild(frag); }
-function updateCategoriseBox(current){ if(!current){ el.categoriseBox.innerHTML='<div class="muted" style="text-align:center" role="status">No uncategorised tasks.</div>'; }
+function updateCategoriseBox(current){ if(!current){ el.categoriseBox.innerHTML='<div class="muted" style="text-align:center;padding:20px" role="status">No uncategorised tasks.</div>'; }
   else if(answeredUrgent===null){ el.categoriseBox.innerHTML = `
-    <div class="sec-title">Categorise</div>
-    <div class="task"><div class="title">${escapeHtml(current.title)}</div><div class="spacer"></div></div>
-    <div class="btnrow" style="margin-top:10px">
+    <div class="sec-title" style="margin-bottom:20px">Categorise</div>
+    <div class="task" style="margin-bottom:24px;padding:16px"><div class="title" style="font-size:16px;line-height:1.5">${escapeHtml(current.title)}</div><div class="spacer"></div></div>
+    <div class="btnrow" style="margin-top:0">
       <button class="btn pill primary" onclick="answerUrgent(true)">Urgent</button>
       <button class="btn pill ghost" onclick="answerUrgent(false)">Not urgent</button>
     </div>`; }
   else { el.categoriseBox.innerHTML = `
-    <div class="sec-title">Categorise</div>
-    <div class="task"><div class="title">${escapeHtml(current.title)}</div><div class="spacer"></div></div>
-    <div class="btnrow" style="margin-top:10px">
+    <div class="sec-title" style="margin-bottom:20px">Categorise</div>
+    <div class="task" style="margin-bottom:24px;padding:16px"><div class="title" style="font-size:16px;line-height:1.5">${escapeHtml(current.title)}</div><div class="spacer"></div></div>
+    <div class="btnrow" style="margin-top:0;margin-bottom:16px">
       <button class="btn pill primary" onclick="answerImportant(true)">Important</button>
       <button class="btn pill ghost" onclick="answerImportant(false)">Not important</button>
     </div>
-    <div class="btnrow" style="margin-top:8px">
+    <div class="btnrow" style="margin-top:0">
       <button class="btn pill ghost" onclick="answerUrgent(null)">Back</button>
     </div>`; } }
 function markForUpdate(parts=['step1','step2','step3']){ parts.forEach(p=>{ if(p in renderState) renderState[p]=true; }); }
@@ -1503,8 +1517,9 @@ function rowItem(t,opts){ const li=document.createElement('li'); li.dataset.id=t
   title.value=t.title||''; 
   title.style.cssText="flex:1; border:none; background:transparent; font-weight:600; font-family:inherit; color:inherit; padding:0; margin:0; outline:none; font-size:inherit;";
   title.ariaLabel='Edit task title';
+  title.readOnly = t.completed;
   title.onchange=(e)=>{ const v=e.target.value.trim(); if(v){ t.title=v; t.updatedAt=Date.now(); saveLocal(); queueUpload(); } else { e.target.value=t.title; } };
-  if(t.completed){ title.className+=' strike'; } 
+  if(t.completed){ title.className+=' strike'; title.style.cursor='default'; } 
   if(opts&&opts.showQuadrant&&t.quadrant){ const pill=document.createElement('span'); pill.className='qpill '+t.quadrant; pill.textContent=t.quadrant; pill.setAttribute('aria-label',`Priority quadrant ${t.quadrant}`); title.parentNode.insertBefore(pill, title.nextSibling); }
   const spacer=document.createElement('div'); spacer.className='spacer'; const del=document.createElement('button'); del.className='btn pill ghost closebtn'; del.textContent='×'; del.setAttribute('aria-label',`Delete task: ${t.title}`); del.title='Delete task'; del.onclick=()=> requestDelete(t, ()=>{ tasks = tasks.filter(x=>x.id!==t.id); saveLocal(); queueUpload(); __recordDelete(); markForUpdate(['step1','step2','step3']); render(); }); li.append(cb,title,spacer,del); return li; }
 function mountQuadrantList(container, arr, key){ if(!arr.length){ const li=document.createElement('li'); li.className='empty-state'; li.setAttribute('role','listitem'); li.style.padding='20px'; li.innerHTML='<p style="font-size:13px;color:var(--muted)">No tasks in this quadrant</p>'; container.innerHTML=''; container.appendChild(li); return; } const frag=document.createDocumentFragment(); arr.forEach(t=>{ frag.appendChild(createQuadrantListItem(t,key)); }); container.innerHTML=''; container.appendChild(frag); }
@@ -1516,11 +1531,15 @@ function createQuadrantListItem(t,key){ const li=document.createElement('li'); l
   title.value=t.title||''; 
   title.style.cssText="width:100%; border:none; background:transparent; font-weight:500; font-size:15px; margin-bottom:8px; display:block; font-family:inherit; color:inherit; padding:0; outline:none;";
   title.ariaLabel='Edit task title';
+  title.readOnly = t.completed;
   title.onchange=(e)=>{ const v=e.target.value.trim(); if(v){ t.title=v; t.updatedAt=Date.now(); saveLocal(); queueUpload(); } else { e.target.value=t.title; } };
-  if(t.completed){ title.className+=' strike'; } 
+  if(t.completed){ title.className+=' strike'; title.style.cursor='default'; } 
   const spacer=document.createElement('div'); spacer.className='spacer'; const actions=document.createElement('div'); actions.className='row-actions'; actions.setAttribute('role','group'); actions.setAttribute('aria-label',`Actions for ${t.title}`);
-  const decat=document.createElement('button'); decat.className='btn pill ghost'; decat.setAttribute('aria-label',`Reset category for ${t.title}`); decat.title='Reset category'; decat.textContent='Reset Category'; decat.onclick=()=>{ t.quadrant=null; t.rank=null; t.updatedAt=Date.now(); saveLocal(); queueUpload(); markForUpdate(['step1','step2','step3']); render(); };
-  actions.append(decat); li.append(title,spacer,actions); return li; }
+  if(!t.completed){
+    const decat=document.createElement('button'); decat.className='btn pill ghost'; decat.setAttribute('aria-label',`Reset category for ${t.title}`); decat.title='Reset category'; decat.textContent='Reset Category'; decat.onclick=()=>{ t.quadrant=null; t.rank=null; t.updatedAt=Date.now(); saveLocal(); queueUpload(); markForUpdate(['step1','step2','step3']); render(); };
+    actions.append(decat);
+  }
+  li.append(title,spacer,actions); return li; }
 
 /* ========= Settings modal ========= */
 const modal=document.getElementById('settingsModal');
@@ -1529,7 +1548,7 @@ const modal=document.getElementById('settingsModal');
 function applyFont(f){ document.documentElement.style.setProperty('--font-family', f); saveUserSettings(); }
 function exportTasks(){ const data={ tasks, settings: JSON.parse(localStorage.getItem('covey_settings')||'{}'), exported:new Date().toISOString() }; const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`covey-todo-${new Date().toISOString().split('T')[0]}.json`; a.click(); URL.revokeObjectURL(url); showSuccess('Tasks exported'); }
 function importTasks(file){ if(!file) return; const r=new FileReader(); r.onload=(e)=>{ try{ const data=JSON.parse(e.target.result); if(data.tasks && Array.isArray(data.tasks)){ if(confirm(`Import ${data.tasks.length} tasks? This will replace your current tasks.`)){ tasks=data.tasks; saveLocal(); queueUpload(); markForUpdate(['step1','step2','step3']); renderState.suggestions=true; render(); showSuccess(`Imported ${data.tasks.length} tasks`); } } else { showError('Invalid file format'); } } catch(err){ console.error('Import error:',err); showError('Failed to import tasks'); } }; r.readAsText(file); el.importFile.value=''; }
-function saveUserSettings(){ try{ const s={ fontFamily: el.fontSelect?.value || 'system-ui, -apple-system, \'Segoe UI\', Roboto, Inter, Arial, sans-serif', confirmDeletes: el.confirmDeletes?.checked !== false, enableAnimations: el.enableAnimations?.checked !== false, autoFocusInput: el.autoFocusInput?.checked !== false, showPriorityDetails: el.showPriorityDetails?.checked || false }; localStorage.setItem('covey_settings', JSON.stringify(s)); markForUpdate(['step3']); render(); }catch(e){ console.warn('Could not save settings:', e); }}
+function saveUserSettings(){ try{ const s={ fontFamily: el.fontSelect?.value || 'system-ui, -apple-system, \'Segoe UI\', Roboto, Inter, Arial, sans-serif', confirmDeletes: el.confirmDeletes?.checked !== false, enableAnimations: el.enableAnimations?.checked !== false, showPriorityDetails: el.showPriorityDetails?.checked || false, enableBetaFeatures: el.enableBetaFeatures?.checked || false }; localStorage.setItem('covey_settings', JSON.stringify(s)); markForUpdate(['step3']); render(); }catch(e){ console.warn('Could not save settings:', e); }}
 function loadUserSettings(){ try{ const s=JSON.parse(localStorage.getItem('covey_settings')||'{}'); if(s.fontFamily){ document.documentElement.style.setProperty('--font-family', s.fontFamily); } return s; }catch(e){ return {}; }}
 
 /* ========= Authentication modal ========= */
@@ -1604,7 +1623,8 @@ function byId(id){ return document.getElementById(id); }
 function escapeHtml(t){ const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
 
 function __recordDelete(){}
-function loadSettingsIntoUI(){ try{ const s=JSON.parse(localStorage.getItem('covey_settings')||'{}'); if(el.fontSelect && s.fontFamily) el.fontSelect.value=s.fontFamily; if(el.confirmDeletes) el.confirmDeletes.checked = s.confirmDeletes !== false; if(el.enableAnimations) el.enableAnimations.checked = s.enableAnimations !== false; if(el.autoFocusInput) el.autoFocusInput.checked = s.autoFocusInput !== false; if(el.showPriorityDetails) el.showPriorityDetails.checked = s.showPriorityDetails || false; }catch{} }
+function loadSettingsIntoUI(){ try{ const s=JSON.parse(localStorage.getItem('covey_settings')||'{}'); if(el.fontSelect && s.fontFamily) el.fontSelect.value=s.fontFamily; if(el.confirmDeletes) el.confirmDeletes.checked = s.confirmDeletes !== false; if(el.enableAnimations) el.enableAnimations.checked = s.enableAnimations !== false; if(el.showPriorityDetails) el.showPriorityDetails.checked = s.showPriorityDetails || false; if(el.enableBetaFeatures) el.enableBetaFeatures.checked = s.enableBetaFeatures || false; toggleBetaFeatures(); }catch{} }
+function toggleBetaFeatures(){ try{ const s=JSON.parse(localStorage.getItem('covey_settings')||'{}'); const enabled = s.enableBetaFeatures || false; if(el.step4Btn) el.step4Btn.style.display = enabled ? '' : 'none'; if(el.step4) el.step4.style.display = enabled ? '' : 'none'; if(!enabled && step === 4){ setStep(3); } }catch(e){ console.warn('Error toggling beta features:', e); } }
 function isFirebaseReady(){ return !!(window.firebase && firebase.apps && firebase.apps.length && auth && db); }
 
 // Cloud sync (debounced push)
