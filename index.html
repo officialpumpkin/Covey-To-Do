@@ -8,6 +8,9 @@
 <meta http-equiv="Expires" content="0">
 <title>Covey To‑Do · Minimal + Sync (Accent) · v43</title>
 <meta name="theme-color" content="#2563eb" id="themeColorMeta">
+
+<script src="load-env.js"></script>
+
 <style>
 /*
   Covey To‑Do v43
@@ -190,7 +193,6 @@ input[type="checkbox"]:checked::after{content:"";position:absolute;left:3px;top:
     </div>
   </header>
 
-  <!-- Stepper -->
   <nav class="btnrow" id="stepper" role="tablist" aria-label="Todo app steps">
     <button id="step1Btn" class="btn pill primary" role="tab" aria-selected="true" aria-controls="step1" tabindex="0">1. Add</button>
     <button id="step2Btn" class="btn pill ghost" role="tab" aria-selected="false" aria-controls="step2" tabindex="-1">2. Categorise</button>
@@ -198,7 +200,6 @@ input[type="checkbox"]:checked::after{content:"";position:absolute;left:3px;top:
     <button id="step4Btn" class="btn pill ghost" role="tab" aria-selected="false" aria-controls="step4" tabindex="-1">4. Visualise</button>
   </nav>
 
-  <!-- Step 1: Add -->
   <section id="step1" class="view active" role="tabpanel" aria-labelledby="step1Btn" aria-hidden="false">
     <div class="card">
       <form id="addForm" aria-label="Add new task">
@@ -212,7 +213,6 @@ input[type="checkbox"]:checked::after{content:"";position:absolute;left:3px;top:
     </div>
   </section>
 
-  <!-- Step 2: Categorise -->
   <section id="step2" class="view" role="tabpanel" aria-labelledby="step2Btn" aria-hidden="true">
     <div class="card">
       <p style="color:var(--muted);font-size:14px;margin:0 0 16px;text-align:center">Assign tasks to quadrants based on urgency and importance</p>
@@ -243,7 +243,6 @@ input[type="checkbox"]:checked::after{content:"";position:absolute;left:3px;top:
     </div>
   </section>
 
-  <!-- Step 3: Prioritise & Manage -->
   <section id="step3" class="view" role="tabpanel" aria-labelledby="step3Btn" aria-hidden="true">
     <div class="card">
       <div class="sec-title">Prioritise & Manage Tasks</div>
@@ -258,7 +257,6 @@ input[type="checkbox"]:checked::after{content:"";position:absolute;left:3px;top:
     </div>
   </section>
 
-  <!-- Step 4: Visualise -->
   <section id="step4" class="view" role="tabpanel" aria-labelledby="step4Btn" aria-hidden="true">
     <div class="card">
       <p style="color:var(--muted);font-size:14px;margin:0 0 16px;text-align:center">Visual mind map of your tasks sized by priority</p>
@@ -272,8 +270,7 @@ input[type="checkbox"]:checked::after{content:"";position:absolute;left:3px;top:
       
       <div id="mindMapContainer" style="width: 100%; height: 500px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); position: relative; overflow: hidden;">
         <svg id="mindMapSvg" width="100%" height="100%" viewBox="0 0 800 500" style="display: block;">
-          <!-- Mind map will be rendered here -->
-        </svg>
+          </svg>
       </div>
       
       <div style="text-align: center; margin-top: 12px; font-size: 12px; color: var(--muted);">
@@ -283,7 +280,6 @@ input[type="checkbox"]:checked::after{content:"";position:absolute;left:3px;top:
   </section>
 </div>
 
-<!-- Settings Modal -->
 <div id="settingsModal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Settings" style="position:fixed;inset:0;background:rgba(0,0,0,.15);display:none;align-items:center;justify-content:center;padding:16px">
   <div class="sheet" style="background:var(--card);border:1px solid var(--border);border-radius:16px;max-width:560px;width:100%;padding:16px;box-shadow:0 10px 24px rgba(0,0,0,.12);text-align:left">
     <div class="row" style="justify-content:center; gap:12px; margin-bottom:6px; display:flex; align-items:center">
@@ -352,7 +348,6 @@ input[type="checkbox"]:checked::after{content:"";position:absolute;left:3px;top:
   </div>
 </div>
 
-<!-- Sign In Modal -->
 <div id="signInModal" class="modal" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Sign In" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:16px">
   <div class="sign-in-sheet" style="background:#1e293b;border:1px solid #334155;border-radius:12px;max-width:400px;width:100%;padding:24px;box-shadow:0 20px 40px rgba(0,0,0,.4);text-align:left;color:#f1f5f9">
     <div class="row" style="justify-content:space-between; margin-bottom:20px; display:flex; align-items:center">
@@ -388,7 +383,6 @@ input[type="checkbox"]:checked::after{content:"";position:absolute;left:3px;top:
   </div>
 </div>
 
-<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js" defer></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js" defer></script>
@@ -1579,15 +1573,23 @@ function showAccountMenu(){ if(confirm('Sign out of your account?')){ signOut();
 let firebaseApp=null; let auth=null;
 function userDocRef(uid){ return db.collection('users').doc(uid).collection('lists').doc('default'); }
 function initializeFirebase(){ try{
+  // Using window.process.env loaded from load-env.js
+  const env = window.process?.env || {};
+  
+  if (!env.GOOGLE_API_KEY) {
+    console.warn('Environment variables missing. Ensure load-env.js is present.');
+  }
+
   const firebaseConfig={
-    apiKey:"AIzaSyA_30R8nbkxbfZFMlFk3ZrAVd64GnT5Bdc",
-    authDomain:"covey-to-do-minimal.firebaseapp.com",
-    projectId:"covey-to-do-minimal",
-    storageBucket:"covey-to-do-minimal.appspot.com", // fixed domain
-    messagingSenderId:"347259300013",
-    appId:"1:347259300013:web:5118af8df57c0f064f3e24",
-    measurementId:"G-XTK3S2LK46"
+    apiKey: env.GOOGLE_API_KEY,
+    authDomain: env.FIREBASE_AUTH_DOMAIN,
+    projectId: env.FIREBASE_PROJECT_ID,
+    storageBucket: env.FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: env.FIREBASE_MESSAGING_SENDER_ID,
+    appId: env.FIREBASE_APP_ID,
+    measurementId: env.FIREBASE_MEASUREMENT_ID
   };
+  
   if(typeof firebase!=='undefined'){
     firebaseApp=firebase.initializeApp(firebaseConfig);
     auth=firebase.auth();
